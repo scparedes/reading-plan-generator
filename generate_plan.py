@@ -3,6 +3,7 @@ import calendar
 from random import choice
 import csv
 import argparse
+from math import ceil
 
 READING_PLAN_PATH = '/Users/santi/Desktop/readingplan.csv'
 
@@ -13,6 +14,13 @@ class ReadingPlan(object):
         self.startpage = startpage
         self.endpage = endpage
         self.frequency = frequency
+
+    @property
+    def pages(self):
+        return [i for i in xrange(self.startpage, self.endpage+1)]
+
+    def get_page_placeholders(self):
+        return [None for i in xrange(0, self.endpage-self.startpage+1)]
 
 class WeeklyReadingPlan(ReadingPlan):
     def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
@@ -25,7 +33,7 @@ class WeeklyReadingPlan(ReadingPlan):
         empty_days = split_n_times(placeholders, min(self.frequency, len(self.days)))
         pages = self.pages
         for day, empty_day in zip(self.days, empty_days):
-            day.startpage = pages.pop(0)
+            day.startpage = day.endpage = pages.pop(0)
             for d in empty_day[1:]:
                 day.endpage = pages.pop(0)
 
@@ -35,13 +43,6 @@ class WeeklyReadingPlan(ReadingPlan):
         while not (cur_date > self.to_date):
             self.days.append(ReadingPlan(from_date=cur_date, to_date=cur_date))
             cur_date += timedelta(days=1)
-
-    @property
-    def pages(self):
-        return [i for i in xrange(self.startpage, self.endpage+1)]
-
-    def get_page_placeholders(self):
-        return [None for i in xrange(0, self.endpage-self.startpage+1)]
 
 class BookReadingPlan(ReadingPlan):
     def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
@@ -53,22 +54,29 @@ class BookReadingPlan(ReadingPlan):
         self.populate_weeks()
         readingplan = open(READING_PLAN_PATH, 'w')
         csv_writer = csv.writer(readingplan, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        for week_num, week in enumerate(self.weeks):
+        for week in self.weeks:
+            if not week.days:
+                continue
             month_name = months[week.from_date.month]
-            csv_writer.writerow(['%s, week %d' % (month_name, week_num+1)])
+            csv_writer.writerow(['%s, week %d' % (month_name, week_of_month(week.from_date))])
             for day in week.days:
+                print day.from_date, day.startpage, day.endpage
                 if not day.startpage:
                     continue
-                csv_writer.writerow(['o  '+'%d-%d' % (day.startpage, day.endpage)])
+                if day.startpage == day.endpage:
+                    csv_writer.writerow(['o ' + '%d' % (day.startpage)])
+                else:
+                    csv_writer.writerow(['o ' + '%d-%d' % (day.startpage, day.endpage)])
 
     def populate_weeks(self):
         self.structure_weeks()
         placeholders = self.get_page_placeholders()
-        empty_weeks = split_n_times(placeholders, len(self.weeks))
+        splits = min(len(self.weeks), int(ceil(len(self.pages)/self.frequency)))
+        empty_weeks = split_n_times(placeholders, splits)
         # evenly distributed weeks
         pages = self.pages
         for week, empty_week in zip(self.weeks, empty_weeks):
-            week.startpage = pages.pop(0)
+            week.startpage = week.endpage = pages.pop(0)
             for day in empty_week[1:]:
                 week.endpage = pages.pop(0)
             week.populate_days()
@@ -77,22 +85,15 @@ class BookReadingPlan(ReadingPlan):
         self.weeks = []
         cur_date = self.from_date
         first_week_day = self.from_date
-        week_last_seen = cur_date.date().isocalendar()[1]
+        week_last_seen = week_of_month(cur_date)
         while not (cur_date > self.to_date):
-            calendar_week = cur_date.date().isocalendar()[1]
+            calendar_week = week_of_month(cur_date)
             if week_last_seen != calendar_week:
                 last_week_day = cur_date - timedelta(days=1)
                 self.weeks.append(WeeklyReadingPlan(from_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
-                week_last_seen = cur_date.date().isocalendar()[1]
+                week_last_seen = week_of_month(cur_date)
                 first_week_day = cur_date
             cur_date += timedelta(days=1)
-
-    @property
-    def pages(self):
-        return [i for i in xrange(self.startpage, self.endpage+1)]
-
-    def get_page_placeholders(self):
-        return [None for i in xrange(0, self.endpage-self.startpage+1)]
 
 def split_into_batches(items, batch_size, return_iterator=False):
     def iterator():
@@ -112,6 +113,14 @@ def split_into_batches(items, batch_size, return_iterator=False):
 def split_n_times(items, n):
     n = min(len(items), n)
     return [items[i*len(items)/n:(i+1)*len(items)/n] for i in xrange(0, n)]
+
+# def week_of_month(dt):
+#     return (dt.weekday() + 1) % 7
+
+def week_of_month(dt):
+    first_day = dt.replace(day=1)
+    adjusted_dom = dt.day + first_day.weekday() + 1
+    return int(ceil(adjusted_dom/7.0))
 
 def get_days(from_date, to_date):
     days = []
