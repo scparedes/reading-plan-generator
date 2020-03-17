@@ -1,15 +1,16 @@
+# Native Python libraries
 from datetime import datetime, timedelta, date
 import calendar
 import csv
 import argparse
 from math import ceil
 import os
-import xlsxwriter
 import string
 
-PAGE_ROW_LIMIT = 35
-PAGE_COLUMN_LIMIT = 13
+# 3rd party libraries
+import xlsxwriter
 
+# Globals
 WEEKDAYS = {'SUNDAY':6,
             'MONDAY':0,
             'TUESDAY':1,
@@ -18,6 +19,124 @@ WEEKDAYS = {'SUNDAY':6,
             'FRIDAY':4,
             'SATURDAY':5}
 START_OF_WEEK = WEEKDAYS['MONDAY']
+MONTHS = calendar.month_name
+
+PAGE_ROW_LIMIT = 35
+PAGE_COLUMN_LIMIT = 13
+COLUMNS = dict(enumerate(string.ascii_uppercase, 1))
+def cell(column, row):
+    return '%s%s' % (COLUMNS[column], row)
+
+OUT_FILENAME = 'reading-plan'
+
+class WeekLongWriter(object):
+    def __init__(self, outfile=None, format_outfile=True):
+        self.outfile = outfile
+        self.format_outfile = format_outfile
+        self.open()
+        self.page = 0
+        self.row = 1
+        self.column = 1
+        self.row_limit = PAGE_ROW_LIMIT
+        self.column_limit = PAGE_COLUMN_LIMIT
+        self.column_increment = 2
+        self.column_overflow_buffer = self.column_limit - 1
+
+    def write_week(self, week):
+        if not week.days:
+            return
+        month_name = MONTHS[week.from_date.month]
+        self.select_column_and_page(week)
+        self.write_header('%s, week %d' % (month_name, week_of_month(week.from_date)))
+        self.increment_row()
+        for day in week.days:
+            if not day.startpage:
+                continue
+            if day.startpage == day.endpage:
+                self.write_data('o  ' + '%d' % (day.startpage))
+            else:
+                self.write_data('o  ' + '%d-%d' % (day.startpage, day.endpage))
+            self.increment_row()
+
+    def select_column_and_page(self, week):
+        if self.format_outfile:
+            if self.additional_rows_will_fit_on_current_page(week):
+                self.column += self.column_increment
+                self.row = 1 + self.page * self.row_limit
+                if self.column > self.column_overflow_buffer:
+                    self.column = 1
+                    self.page += 1
+                    self.row = 1 + self.page * self.row_limit
+
+    def additional_rows_will_fit_on_current_page(self, week):
+        return len(week.days) + 1 + (self.row - self.page * self.row_limit) > self.row_limit
+
+    def increment_row(self):
+        self.row += 1
+
+    def write_header(self, header_str):
+        raise NotImplementedError
+
+    def write_data(self, data_str):
+        raise NotImplementedError
+
+    def open(self):
+        raise NotImplementedError
+
+    def close(self):
+        raise NotImplementedError
+
+class ExcelWeekLongWriter(WeekLongWriter):
+    def __init__(self, outfile=None, format_outfile=True):
+        outfile = os.path.expanduser(outfile)+'.xlsx'
+        super(ExcelWeekLongWriter, self).__init__(outfile, format_outfile)
+
+    def write_header(self, header_str):
+        self.worksheet.write(cell(self.column, self.row), header_str, self.bold)
+
+    def write_data(self, data_str):
+        self.worksheet.write(cell(self.column, self.row), data_str)
+
+    def open(self):
+        if os.path.exists(self.outfile):
+            os.remove(self.outfile)
+        self.workbook = xlsxwriter.Workbook(self.outfile)
+        self.worksheet = self.workbook.add_worksheet()
+        if self.format_outfile:
+            self.worksheet.set_landscape()
+        self.bold = self.workbook.add_format({'bold': self.format_outfile})
+
+    def close(self):
+        if self.format_outfile:
+            self.worksheet.set_v_pagebreaks([1 + i * self.row_limit for i in range(1, self.page)])
+        self.workbook.close()
+
+class CsvWeekLongWriter(WeekLongWriter):
+    def __init__(self, outfile=None, format_outfile=False):
+        outfile = os.path.expanduser(outfile)+'.csv'
+        super(CsvWeekLongWriter, self).__init__(outfile, format_outfile)
+        self.rows = []
+
+    def write_header(self, header_str):
+        self.write(header_str)
+
+    def write_data(self, data_str):
+        self.write(data_str)
+
+    def write(self, cell_string):
+        while len(self.rows) < self.row:
+            self.rows.append([])
+        self.rows[self.row-1].extend([cell_string])
+
+    def open(self):
+        if os.path.exists(self.outfile):
+            os.remove(self.outfile)
+        self.readingplan = open(os.path.expanduser(self.outfile), 'w')
+        self.csv_writer = csv.writer(self.readingplan, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+    def close(self):
+        self.csv_writer.writerows(self.rows)
+        self.readingplan.close()
 
 class ReadingPlan(object):
     def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=None):
@@ -34,9 +153,9 @@ class ReadingPlan(object):
     def get_page_placeholders(self):
         return [None for i in range(0, self.endpage-self.startpage+1)]
 
-class WeeklyReadingPlan(ReadingPlan):
+class WeekLongReadingPlan(ReadingPlan):
     def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
-        super(WeeklyReadingPlan, self).__init__(from_date, to_date, startpage, endpage, frequency)
+        super(WeekLongReadingPlan, self).__init__(from_date, to_date, startpage, endpage, frequency)
         self.days = []
 
     def populate_days(self):
@@ -57,84 +176,32 @@ class WeeklyReadingPlan(ReadingPlan):
             cur_date += timedelta(days=1)
 
 class BookReadingPlan(ReadingPlan):
-    def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5, outdir=None):
+    def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
         super(BookReadingPlan, self).__init__(from_date, to_date, startpage, endpage, frequency)
-        self.outdir = outdir
-        self.outfile = os.path.join(outdir, 'reading-plan')
         self.weeks = []
-
-    def generate_plan_as_csv(self):
-        outfile = self.outfile+'.csv'
-        months = calendar.month_name
         self.populate_weeks()
-        readingplan = open(os.path.expanduser(outfile), 'w')
-        csv_writer = csv.writer(readingplan, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        for week in self.weeks:
-            if not week.days:
-                continue
-            month_name = months[week.from_date.month]
-            csv_writer.writerow(['%s, week %d' % (month_name, week_of_month(week.from_date))])
-            for day in week.days:
-                if not day.startpage:
-                    continue
-                if day.startpage == day.endpage:
-                    csv_writer.writerow(['o ' + '%d' % (day.startpage)])
-                else:
-                    csv_writer.writerow(['o ' + '%d-%d' % (day.startpage, day.endpage)])
 
-    def generate_plan_as_excel(self):
-        COLUMNS = dict(enumerate(string.ascii_uppercase, 1))
-        def cell(column, row):
-            return '%s%s' % (COLUMNS[column], row)
-        outfile = os.path.expanduser(self.outfile)+'.xlsx'
-        if os.path.exists(outfile):
-            os.remove(outfile)
-        row_limit = PAGE_ROW_LIMIT
-        column_limit = PAGE_COLUMN_LIMIT
-        column_increment = 2
-        column_overflow_buffer = column_limit - 1
-        workbook = xlsxwriter.Workbook(outfile)
-        worksheet = workbook.add_worksheet()
-        worksheet.set_landscape()
-        bold = workbook.add_format({'bold': True})
-        months = calendar.month_name
-        self.populate_weeks()
-        row = 1
-        column = 1
-        page = 0
+    def write_excel(self, outdir, format_outfile=True):
+        self._write(ExcelWeekLongWriter, outdir, format_outfile)
+
+    def write_csv(self, outdir, format_outfile=False):
+        self._write(CsvWeekLongWriter, outdir, format_outfile)
+
+    def _write(self, writer_class, outdir, format_outfile):
+        outfile = os.path.join(outdir, OUT_FILENAME)
+        weekly_writer = writer_class(outfile, format_outfile)
         for week in self.weeks:
-            if not week.days:
-                continue
-            month_name = months[week.from_date.month]
-            if len(week.days) + 1 + (row - page * row_limit) > row_limit:
-                column += column_increment
-                row = 1 + page * row_limit
-                if column > column_overflow_buffer:
-                    column = 1
-                    page += 1
-                    row = 1 + page * row_limit
-            worksheet.write(cell(column, row), '%s, week %d' % (month_name, week_of_month(week.from_date)), bold)
-            row += 1
-            for day in week.days:
-                if not day.startpage:
-                    continue
-                if day.startpage == day.endpage:
-                    worksheet.write(cell(column, row), 'o  ' + '%d' % (day.startpage))
-                else:
-                    worksheet.write(cell(column, row), 'o  ' + '%d-%d' % (day.startpage, day.endpage))
-                row += 1
-        worksheet.set_v_pagebreaks([1 + i * row_limit for i in range(1, page)])
-        workbook.close()
+            weekly_writer.write_week(week)
+        weekly_writer.close()
 
     def populate_weeks(self):
         self.structure_weeks()
         placeholders = self.get_page_placeholders()
         splits = min(len(self.weeks), int(ceil(len(self.pages)/self.frequency)))
         empty_weeks = split_n_times(placeholders, splits)
-        # evenly distributed weeks
+        # TODO: Normally distribute (or "evenly" pages) across weeks.
         pages = self.pages
         for week, empty_week in zip(self.weeks, empty_weeks):
-            print(week.from_date, week.to_date)
             week.startpage = week.endpage = pages.pop(0)
             for day in empty_week[1:]:
                 week.endpage = pages.pop(0)
@@ -147,14 +214,12 @@ class BookReadingPlan(ReadingPlan):
         while not (cur_date > self.to_date):
             if cur_date.weekday() == 6:
                 last_week_day = cur_date - timedelta(days=1)
-                print (cur_date, first_week_day, last_week_day)
-                self.weeks.append(WeeklyReadingPlan(from_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
+                self.weeks.append(WeekLongReadingPlan(from_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
                 first_week_day = cur_date
             cur_date += timedelta(days=1)
         if last_week_day != cur_date:
             last_week_day = cur_date - timedelta(days=1)
-            print (cur_date, first_week_day, last_week_day)
-            self.weeks.append(WeeklyReadingPlan(from_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
+            self.weeks.append(WeekLongReadingPlan(from_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
 
 def split_into_batches(items, batch_size, return_iterator=False):
     def iterator():
@@ -190,16 +255,23 @@ if __name__ == '__main__':
     parser.add_argument('--end-page', required=True, type=int)
     parser.add_argument('--frequency', type=int, default=5)
     parser.add_argument('--outdir', default='~/Desktop/')
+    parser.add_argument('--excel', action='store_true')
+    parser.add_argument('--csv', action='store_true')
     (options, args) = parser.parse_known_args()
 
     from_date = datetime.strptime(options.from_date, '%Y%m%d')
     to_date = datetime.strptime(options.to_date, '%Y%m%d')
     cur_date = from_date
 
-    weekly_reading_plan = BookReadingPlan(from_date=from_date, 
+    book_reading_plan = BookReadingPlan(from_date=from_date, 
                                           to_date=to_date, 
                                           startpage=options.start_page, 
                                           endpage=options.end_page,
-                                          frequency=options.frequency,
-                                          outdir=options.outdir)
-    weekly_reading_plan.generate_plan_as_excel()
+                                          frequency=options.frequency)
+
+    if int(options.excel) + int(options.csv) < 1:
+        raise Exception('No reading plan file format was specified.')
+    if options.excel:
+        book_reading_plan.write_excel(options.outdir)
+    if options.csv:
+        book_reading_plan.write_csv(options.outdir)
