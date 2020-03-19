@@ -18,11 +18,18 @@ WEEKDAYS = {'SUNDAY':6,
             'THURSDAY':3,
             'FRIDAY':4,
             'SATURDAY':5}
+num2words1 = {0:'Zero', 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', \
+            6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten', \
+            11: 'Eleven', 12: 'Twelve', 13: 'Thirteen', 14: 'Fourteen', \
+            15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen', 18: 'Eighteen', 19: 'Nineteen'}
+num2words2 = ['Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
 START_OF_WEEK = WEEKDAYS['MONDAY']
 MONTHS = calendar.month_name
+DEFAULT_CELL = 0
 
 PAGE_ROW_LIMIT = 35
-PAGE_COLUMN_LIMIT = 13
+PAGE_COLUMN_LIMIT = 15
+COLUMN_INCREMENT = 2
 COLUMNS = dict(enumerate(string.ascii_uppercase, 1))
 def cell(column, row):
     return '%s%s' % (COLUMNS[column], row)
@@ -30,23 +37,31 @@ def cell(column, row):
 OUT_FILENAME = 'reading-plan'
 
 class WeekLongWriter(object):
-    def __init__(self, outfile=None, format_outfile=True):
+    """Writes a WeekLongReadingPlan to disk.
+    """
+    def __init__(self, 
+                 outfile=None, 
+                 format_outfile=True, 
+                 row_limit=PAGE_ROW_LIMIT, 
+                 column_limit=PAGE_COLUMN_LIMIT, 
+                 column_increment=COLUMN_INCREMENT):
         self.outfile = outfile
         self.format_outfile = format_outfile
         self.open()
         self.page = 0
         self.row = 1
         self.column = 1
-        self.row_limit = PAGE_ROW_LIMIT
-        self.column_limit = PAGE_COLUMN_LIMIT
-        self.column_increment = 2
+        self.row_limit = row_limit
+        self.column_limit = column_limit
+        self.column_increment = column_increment
         self.column_overflow_buffer = self.column_limit - 1
 
     def write_week(self, week):
         if not week.days:
             return
         month_name = MONTHS[week.from_date.month]
-        self.select_column_and_page(week)
+        if self.format_outfile:
+            self.select_column_and_page(len(week.days))
         self.write_header('%s, week %d' % (month_name, week_of_month(week.from_date)))
         self.increment_row()
         for day in week.days:
@@ -58,21 +73,35 @@ class WeekLongWriter(object):
                 self.write_data('o  ' + '%d-%d' % (day.startpage, day.endpage))
             self.increment_row()
 
-    def select_column_and_page(self, week):
-        if self.format_outfile:
-            if self.additional_rows_will_fit_on_current_page(week):
-                self.column += self.column_increment
+    def select_column_and_page(self, num_additional_rows):
+        if self.additional_rows_will_fit_on_current_page(num_additional_rows):
+            self.column += self.column_increment
+            self.row = 1 + self.page * self.row_limit
+            if self.column > self.column_overflow_buffer:
+                self.column = 1
+                self.page += 1
                 self.row = 1 + self.page * self.row_limit
-                if self.column > self.column_overflow_buffer:
-                    self.column = 1
-                    self.page += 1
-                    self.row = 1 + self.page * self.row_limit
 
-    def additional_rows_will_fit_on_current_page(self, week):
-        return len(week.days) + 1 + (self.row - self.page * self.row_limit) > self.row_limit
+    def additional_rows_will_fit_on_current_page(self, num_rows):
+        return num_rows + 1 + (self.row - self.page * self.row_limit) > self.row_limit
 
     def increment_row(self):
         self.row += 1
+
+    def write_weekly_summary(self, weeks):
+        self.increment_row()
+        self.column_increment += 1
+        self.select_column_and_page(1)
+        self.write_header('Week to Read')
+        self.increment_row()
+        start_weeks = 1 if not weeks[0].from_date.weekday() else 0
+        for overall_week_number, week in enumerate(weeks, start_weeks):
+            if not week.days:
+                continue
+            self.select_column_and_page(1)
+            weekly_summary_row = ('___ %s' % num_to_word(overall_week_number)).ljust(17, '.') + week.formatted_date_range
+            self.write_data(weekly_summary_row)
+            self.increment_row()
 
     def write_header(self, header_str):
         raise NotImplementedError
@@ -87,6 +116,8 @@ class WeekLongWriter(object):
         raise NotImplementedError
 
 class ExcelWeekLongWriter(WeekLongWriter):
+    """Writes a WeekLongReadingPlan as an Excel spreadsheet to disk.
+    """
     def __init__(self, outfile=None, format_outfile=True):
         outfile = os.path.expanduser(outfile)+'.xlsx'
         super(ExcelWeekLongWriter, self).__init__(outfile, format_outfile)
@@ -102,9 +133,11 @@ class ExcelWeekLongWriter(WeekLongWriter):
             os.remove(self.outfile)
         self.workbook = xlsxwriter.Workbook(self.outfile)
         self.worksheet = self.workbook.add_worksheet()
+        self.bold = self.workbook.add_format({'bold': self.format_outfile})
         if self.format_outfile:
             self.worksheet.set_landscape()
-        self.bold = self.workbook.add_format({'bold': self.format_outfile})
+            self.workbook.formats[DEFAULT_CELL].set_font_size(10)
+            self.bold.set_font_size(10)
 
     def close(self):
         if self.format_outfile:
@@ -112,6 +145,8 @@ class ExcelWeekLongWriter(WeekLongWriter):
         self.workbook.close()
 
 class CsvWeekLongWriter(WeekLongWriter):
+    """Writes a WeekLongReadingPlan as a CSV to disk.
+    """
     def __init__(self, outfile=None, format_outfile=False):
         outfile = os.path.expanduser(outfile)+'.csv'
         super(CsvWeekLongWriter, self).__init__(outfile, format_outfile)
@@ -139,6 +174,8 @@ class CsvWeekLongWriter(WeekLongWriter):
         self.readingplan.close()
 
 class ReadingPlan(object):
+    """A minimalist reading plan.
+    """
     def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=None):
         self.from_date = from_date
         self.to_date = to_date
@@ -153,7 +190,19 @@ class ReadingPlan(object):
     def get_page_placeholders(self):
         return [None for i in range(0, self.endpage-self.startpage+1)]
 
+    @property
+    def formatted_date_range(self):
+        fdr = '%s %d' % (self.from_date.strftime('%b'), self.from_date.day)
+        if self.from_date != self.to_date:
+            fdr += ' - '
+            if self.from_date.month != self.to_date.month:
+                fdr += '%s ' % self.to_date.strftime('%b')
+            fdr += str(self.to_date.day)
+        return fdr
+
 class WeekLongReadingPlan(ReadingPlan):
+    """A reading plan based off of 1 week of reading.
+    """
     def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
         super(WeekLongReadingPlan, self).__init__(from_date, to_date, startpage, endpage, frequency)
         self.days = []
@@ -165,7 +214,7 @@ class WeekLongReadingPlan(ReadingPlan):
         pages = self.pages
         for day, empty_day in zip(self.days, empty_days):
             day.startpage = day.endpage = pages.pop(0)
-            for d in empty_day[1:]:
+            for _ in empty_day[1:]:
                 day.endpage = pages.pop(0)
 
     def structure_days(self):
@@ -176,6 +225,8 @@ class WeekLongReadingPlan(ReadingPlan):
             cur_date += timedelta(days=1)
 
 class BookReadingPlan(ReadingPlan):
+    """A reading plan based off multiple weeks of reading.
+    """
     def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
         super(BookReadingPlan, self).__init__(from_date, to_date, startpage, endpage, frequency)
         self.weeks = []
@@ -192,6 +243,7 @@ class BookReadingPlan(ReadingPlan):
         weekly_writer = writer_class(outfile, format_outfile)
         for week in self.weeks:
             weekly_writer.write_week(week)
+        weekly_writer.write_weekly_summary(self.weeks)
         weekly_writer.close()
 
     def populate_weeks(self):
@@ -203,7 +255,7 @@ class BookReadingPlan(ReadingPlan):
         pages = self.pages
         for week, empty_week in zip(self.weeks, empty_weeks):
             week.startpage = week.endpage = pages.pop(0)
-            for day in empty_week[1:]:
+            for _ in empty_week[1:]:
                 week.endpage = pages.pop(0)
             week.populate_days()
 
@@ -246,6 +298,14 @@ def week_of_month(dt):
     week_num = int(ceil(adjusted_dom/7.0))
     return week_num - ((7 - START_OF_WEEK) % 7)
 
+def num_to_word(num):
+    if 0 <= num <= 19:
+        return num2words1[num]
+    elif 20 <= num <= 99:
+        tens, below_ten = divmod(num, 10)
+        return num2words2[tens - 2] + '-' + num2words1[below_ten] if below_ten else num2words2[tens - 2]
+    else:
+        raise NotImplementedError('Number out of implemented range of numbers.')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=False)
