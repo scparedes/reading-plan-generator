@@ -2,6 +2,7 @@
 from datetime import datetime
 import os
 import sys
+import io
 
 # flask libs
 from flask import Flask, render_template, send_file, request
@@ -24,7 +25,6 @@ def home():
 
 @app.route('/generateReadingPlan', methods=['POST'])
 def generate_reading_plan():
-    # import pdb;pdb.set_trace()
     start_date = datetime.strptime(request.form['start_date'], '%m/%d/%Y')
     end_date = datetime.strptime(request.form['end_date'], '%m/%d/%Y')
     start_page = int(request.form['start_page'])
@@ -45,10 +45,19 @@ def generate_reading_plan():
     elif 'excel' in output_file_type:
         mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         outfile = writer.write_excel(OUTDIR, format_outfile=format_outfile)
-    return send_file(outfile,
+    mem_outfile = disk_to_memory(outfile)
+    return send_file(mem_outfile,
                      mimetype=mimetype,
                      attachment_filename=os.path.basename(outfile),
                      as_attachment=True)
-    
+
+def disk_to_memory(disk_path):
+    mem_file = io.BytesIO()
+    with open(disk_path, 'rb') as f:
+        mem_file.write(f.read())
+    mem_file.seek(0)
+    os.remove(disk_path)
+    return mem_file
+
 if __name__ == "__main__":
     app.run(debug=True)

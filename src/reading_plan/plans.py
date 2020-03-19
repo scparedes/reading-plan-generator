@@ -60,6 +60,10 @@ class BookReadingPlan(ReadingPlan):
     """
     def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=5):
         super(BookReadingPlan, self).__init__(start_date, end_date, startpage, endpage, frequency)
+        if start_date > end_date:
+            raise ValueError('Start Date must be smaller than End Date!')
+        if (end_date - start_date).days > 365 * 2:
+            raise ValueError('Plans can only be generated for 2 years of reading or less!')
         self.weeks = []
         self.populate_weeks()
 
