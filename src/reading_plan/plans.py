@@ -3,16 +3,20 @@ from datetime import timedelta
 from math import ceil
 from common import WEEKDAYS, START_OF_WEEK
 
+# globals
+YEAR_LIMIT = 3
+
 
 class ReadingPlan(object):
     """A minimalist reading plan.
     """
-    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=None):
+    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=None, name=None):
         self.start_date = start_date
         self.end_date = end_date
         self.startpage = startpage
         self.endpage = endpage
         self.frequency = frequency
+        self.name = name
 
     @property
     def pages(self):
@@ -34,8 +38,8 @@ class ReadingPlan(object):
 class WeekLongReadingPlan(ReadingPlan):
     """A reading plan based off of 1 week of reading.
     """
-    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=5):
-        super(WeekLongReadingPlan, self).__init__(start_date, end_date, startpage, endpage, frequency)
+    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=5, name=None):
+        super(WeekLongReadingPlan, self).__init__(start_date, end_date, startpage, endpage, frequency, name)
         self.days = []
 
     def populate_days(self):
@@ -58,11 +62,11 @@ class WeekLongReadingPlan(ReadingPlan):
 class BookReadingPlan(ReadingPlan):
     """A reading plan based off multiple weeks of reading.
     """
-    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=5):
-        super(BookReadingPlan, self).__init__(start_date, end_date, startpage, endpage, frequency)
+    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=5, name=None):
+        super(BookReadingPlan, self).__init__(start_date, end_date, startpage, endpage, frequency, name)
         if start_date > end_date:
             raise ValueError('Start Date must be smaller than End Date!')
-        if (end_date - start_date).days > 365 * 2:
+        if (end_date - start_date).days > 365 * YEAR_LIMIT:
             raise ValueError('Plans can only be generated for 2 years of reading or less!')
         self.weeks = []
         self.populate_weeks()

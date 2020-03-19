@@ -65,6 +65,19 @@
     } catch (err) {
         console.log(err);
     }
-    
+
+    $("#output-file").change(function() {
+        var val = $(this).val();
+        if (val === "Excel (recommended)") {
+            $("#checkbox").prop( "checked", true );
+            $("#recommended").show();
+            $("#book-name").show();
+        }
+        else if (val === "CSV") {
+            $("#checkbox").prop( "checked", false );
+            $("#recommended").hide();
+            $("#book-name").hide();
+        }
+    });
 
 })(jQuery);

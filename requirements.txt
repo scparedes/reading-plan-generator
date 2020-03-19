@@ -1,10 +1,1 @@
-lml==0.0.9
-pyexcel==0.5.15
-pyexcel-io==0.5.20
-texttable==1.6.2
-Flask==1.1.1
-Jinja2==2.11.1
-MarkupSafe==1.1.1
-Werkzeug==1.0.0
-click==7.1.1
-itsdangerous==1.1.0
+src/requirements.txt

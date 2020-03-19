@@ -90,7 +90,7 @@
                                 <div class="input-group">
                                     <label class="label">Output File</label>
                                     <div class="rs-select2 js-select-simple select--no-search">
-                                        <select name="output_file_type">
+                                        <select name="output_file_type" id="output-file">
                                             <option disabled="disabled" selected="selected">Type</option>
                                             <option>Excel (recommended)</option>
                                             <option>CSV</option>
@@ -100,10 +100,14 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="input-group" id="book-name">
+                            <label class="label">Book Name</label>
+                            <input class="input--style-4" type="text" name="book_name" placeholder="(Optional)">
+                        </div>
                         <div class="input-group">
                             <div class="p-t-10">
-                                <label class="radio-container m-r-45">Format Outfile (Recommended)
-                                    <input type="checkbox" checked="checked" name="format_outfile">
+                                <label class="radio-container m-r-45">Format Outfile <div style="display: inline;" id="recommended">(Recommended)</div>
+                                    <input type="checkbox" checked="checked" name="format_outfile" id="checkbox">
                                     <span class="checkmark"></span>
                                 </label>
                             </div>
@@ -112,6 +116,14 @@
                             <button class="btn btn--radius-2 btn--blue" type="submit">Generate Plan</button>
                         </div>
                     </form>
+                    <div style="margin-top: 25px; margin-bottom: -20px;">
+                        <div style="float:left; margin-top:3px">
+                            <p style="font-size:10px;"><em><a href="https://github.com/scparedes">Source code</a></em></p>
+                        </div>
+                        <div style="float:right;">
+                            <p><em>By <a href="https://www.instagram.com/santicmusic/">Santiago Paredes</a></em></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

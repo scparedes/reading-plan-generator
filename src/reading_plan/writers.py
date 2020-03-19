@@ -4,6 +4,7 @@ import csv
 import string
 import calendar
 from math import ceil
+import uuid
 
 # 3rd party libraries
 import xlsxwriter
@@ -24,14 +25,19 @@ class BookReadingPlanWriter(object):
         self.plan = book_reading_plan
 
     def write_excel(self, outdir, format_outfile=True):
-        return self._write(ExcelWeekLongWriter, outdir, format_outfile)
+        return self._write(ExcelWeekLongWriter, outdir, format_outfile, self.plan.name)
 
     def write_csv(self, outdir, format_outfile=False):
         return self._write(CsvWeekLongWriter, outdir, format_outfile)
 
-    def _write(self, writer_class, outdir, format_outfile):
+    def _write(self, writer_class, outdir, format_outfile, plan_name=None):
         outfile = os.path.join(outdir, OUT_FILENAME)
-        weekly_writer = writer_class(outfile, format_outfile)
+        if outdir == '/tmp':
+            outfile += str(uuid.uuid4())
+        writer_args = [outfile, format_outfile]
+        if plan_name:
+            writer_args += [plan_name]
+        weekly_writer = writer_class(*writer_args)
         for week in self.plan.weeks:
             weekly_writer.write_week(week)
         weekly_writer.write_weekly_summary(self.plan.weeks)
@@ -63,14 +69,17 @@ class WeekLongWriter(object):
         self.column_limit = column_limit
         self.column_increment = column_increment
         self.column_overflow_buffer = self.column_limit - 1
+        self._weeks_seen = 0
 
     def write_week(self, week):
+        self._weeks_seen += 1
         if not week.days:
             return
         month_name = MONTHS[week.start_date.month]
         if self.format_outfile:
             self.select_column_and_page(len(week.days))
-        self.write_header('%s, week %d' % (month_name, week_of_month(week.start_date)))
+        # TODO: Correctly calculate the first weekday `self.write_header('%s, week %d' % (month_name, week_of_month(week.start_date)))`
+        self.write_header('Week %d' % self._weeks_seen)
         for day in week.days:
             if not day.startpage:
                 continue
@@ -95,17 +104,20 @@ class WeekLongWriter(object):
         self.row += 1
 
     def write_weekly_summary(self, weeks):
-        while not self.is_pointing_to_new_column:
-            self.increment_row()
-            self.select_column_and_page(1)
-        self.column_increment += 2
-        self.write_header('Week to Read')
-        first_weekday = weeks[0].start_date.weekday()
-        start_week_offset = int(first_weekday == START_OF_WEEK)
+        if self.format_outfile:
+            while not self.is_pointing_to_new_column:
+                self.increment_row()
+                self.select_column_and_page(1)
+            self.column_increment += 2
+        self.write_header('Week No.')
+        # TODO: Correctly calculate the first weekday `first_weekday = weeks[0].start_date.weekday()`
+        #                                             `start_week_offset = int(first_weekday == START_OF_WEEK)``
+        start_week_offset = 1
         for overall_week_number, week in enumerate(weeks, start_week_offset):
             if not week.days:
                 continue
-            self.select_column_and_page(1)
+            if self.format_outfile:
+                self.select_column_and_page(1)
             weekly_summary_row = ('___ %s' % num_to_word(overall_week_number)).ljust(20, '.') + week.formatted_date_range
             self.write_data(weekly_summary_row)
 
@@ -128,8 +140,9 @@ class WeekLongWriter(object):
 class ExcelWeekLongWriter(WeekLongWriter):
     """Writes a WeekLongReadingPlan as an Excel spreadsheet to disk.
     """
-    def __init__(self, outfile=None, format_outfile=True):
+    def __init__(self, outfile=None, format_outfile=True, plan_name=None):
         outfile = os.path.expanduser(outfile)+'.xlsx'
+        self.plan_name = plan_name
         super(ExcelWeekLongWriter, self).__init__(outfile, format_outfile)
 
     @post_increment_row
@@ -149,6 +162,7 @@ class ExcelWeekLongWriter(WeekLongWriter):
         if self.format_outfile:
             self.worksheet.set_landscape()
             self.worksheet.set_margins(left=.25, right=.25, top=.75, bottom=.75)
+            self.worksheet.set_header('&C&"Calibri,Bold"&18%s Reading Plan' % self.plan_name)
             self.workbook.formats[DEFAULT_CELL].set_font_size(10)
             self.bold.set_font_size(10)
 

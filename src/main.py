@@ -11,11 +11,11 @@ from flask import Flask, render_template, send_file, request
 dirname = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(dirname, 'reading_plan'))
 from reading_plan.plans import BookReadingPlan
-from reading_plan.writers import BookReadingPlanWriter
+from reading_plan.writers import BookReadingPlanWriter, OUT_FILENAME
 
 # globals
 NUMBER = 0
-OUTDIR = '~/Desktop'
+OUTDIR = '/tmp' # https://cloud.google.com/appengine/docs/standard/python3/using-temp-files
 
 app = Flask(__name__)
 
@@ -30,25 +30,26 @@ def generate_reading_plan():
     start_page = int(request.form['start_page'])
     end_page = int(request.form['end_page'])
     frequency = int(request.form['frequency'][NUMBER])
+    book_name = request.form['book_name']
     book_reading_plan = BookReadingPlan(start_date=start_date,
                                         end_date=end_date,
                                         startpage=start_page,
                                         endpage=end_page,
-                                        frequency=frequency)
-
+                                        frequency=frequency,
+                                        name=book_name)
     output_file_type = request.form['output_file_type'].lower()
-    format_outfile = request.form['format_outfile'] == 'on'
+    format_outfile = 'format_outfile' in request.form
     writer = BookReadingPlanWriter(book_reading_plan)
     if 'csv' in output_file_type:
         mimetype = 'text/csv'
-        outfile = writer.write_csv(OUTDIR, format_outfile=format_outfile)
+        outfile_path = writer.write_csv(OUTDIR, format_outfile=format_outfile)
     elif 'excel' in output_file_type:
         mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        outfile = writer.write_excel(OUTDIR, format_outfile=format_outfile)
-    mem_outfile = disk_to_memory(outfile)
+        outfile_path = writer.write_excel(OUTDIR, format_outfile=format_outfile)
+    mem_outfile = disk_to_memory(outfile_path)
     return send_file(mem_outfile,
                      mimetype=mimetype,
-                     attachment_filename=os.path.basename(outfile),
+                     attachment_filename='%s.%s' % (OUT_FILENAME, os.path.splitext(outfile_path)[1]),
                      as_attachment=True)
 
 def disk_to_memory(disk_path):
