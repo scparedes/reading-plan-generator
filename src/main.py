@@ -49,7 +49,7 @@ def generate_reading_plan():
     mem_outfile = disk_to_memory(outfile_path)
     return send_file(mem_outfile,
                      mimetype=mimetype,
-                     attachment_filename='%s.%s' % (OUT_FILENAME, os.path.splitext(outfile_path)[1]),
+                     attachment_filename='%s%s' % (OUT_FILENAME, os.path.splitext(outfile_path)[1]),
                      as_attachment=True)
 
 def disk_to_memory(disk_path):
