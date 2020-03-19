@@ -67,10 +67,10 @@ class WeekLongWriter(object):
     def write_week(self, week):
         if not week.days:
             return
-        month_name = MONTHS[week.from_date.month]
+        month_name = MONTHS[week.start_date.month]
         if self.format_outfile:
             self.select_column_and_page(len(week.days))
-        self.write_header('%s, week %d' % (month_name, week_of_month(week.from_date)))
+        self.write_header('%s, week %d' % (month_name, week_of_month(week.start_date)))
         self.increment_row()
         for day in week.days:
             if not day.startpage:
@@ -102,7 +102,7 @@ class WeekLongWriter(object):
         self.select_column_and_page(1)
         self.write_header('Week to Read')
         self.increment_row()
-        start_weeks = 1 if not weeks[0].from_date.weekday() else 0
+        start_weeks = 1 if not weeks[0].start_date.weekday() else 0
         for overall_week_number, week in enumerate(weeks, start_weeks):
             if not week.days:
                 continue

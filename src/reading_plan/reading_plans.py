@@ -6,8 +6,8 @@ from math import ceil
 class ReadingPlan(object):
     """A minimalist reading plan.
     """
-    def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=None):
-        self.from_date = from_date
+    def __init__(self, start_date=None, to_date=None, startpage=None, endpage=None, frequency=None):
+        self.start_date = start_date
         self.to_date = to_date
         self.startpage = startpage
         self.endpage = endpage
@@ -22,10 +22,10 @@ class ReadingPlan(object):
 
     @property
     def formatted_date_range(self):
-        fdr = '%s %d' % (self.from_date.strftime('%b'), self.from_date.day)
-        if self.from_date != self.to_date:
+        fdr = '%s %d' % (self.start_date.strftime('%b'), self.start_date.day)
+        if self.start_date != self.to_date:
             fdr += ' - '
-            if self.from_date.month != self.to_date.month:
+            if self.start_date.month != self.to_date.month:
                 fdr += '%s ' % self.to_date.strftime('%b')
             fdr += str(self.to_date.day)
         return fdr
@@ -33,8 +33,8 @@ class ReadingPlan(object):
 class WeekLongReadingPlan(ReadingPlan):
     """A reading plan based off of 1 week of reading.
     """
-    def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
-        super(WeekLongReadingPlan, self).__init__(from_date, to_date, startpage, endpage, frequency)
+    def __init__(self, start_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
+        super(WeekLongReadingPlan, self).__init__(start_date, to_date, startpage, endpage, frequency)
         self.days = []
 
     def populate_days(self):
@@ -49,16 +49,16 @@ class WeekLongReadingPlan(ReadingPlan):
 
     def structure_days(self):
         self.days = []
-        cur_date = self.from_date
+        cur_date = self.start_date
         while not (cur_date > self.to_date):
-            self.days.append(ReadingPlan(from_date=cur_date, to_date=cur_date))
+            self.days.append(ReadingPlan(start_date=cur_date, to_date=cur_date))
             cur_date += timedelta(days=1)
 
 class BookReadingPlan(ReadingPlan):
     """A reading plan based off multiple weeks of reading.
     """
-    def __init__(self, from_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
-        super(BookReadingPlan, self).__init__(from_date, to_date, startpage, endpage, frequency)
+    def __init__(self, start_date=None, to_date=None, startpage=None, endpage=None, frequency=5):
+        super(BookReadingPlan, self).__init__(start_date, to_date, startpage, endpage, frequency)
         self.weeks = []
         self.populate_weeks()
 
@@ -77,17 +77,17 @@ class BookReadingPlan(ReadingPlan):
 
     def structure_weeks(self):
         self.weeks = []
-        cur_date = self.from_date
-        first_week_day = self.from_date
+        cur_date = self.start_date
+        first_week_day = self.start_date
         while not (cur_date > self.to_date):
             if cur_date.weekday() == 6:
                 last_week_day = cur_date - timedelta(days=1)
-                self.weeks.append(WeekLongReadingPlan(from_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
+                self.weeks.append(WeekLongReadingPlan(start_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
                 first_week_day = cur_date
             cur_date += timedelta(days=1)
         if last_week_day != cur_date:
             last_week_day = cur_date - timedelta(days=1)
-            self.weeks.append(WeekLongReadingPlan(from_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
+            self.weeks.append(WeekLongReadingPlan(start_date=first_week_day, to_date=last_week_day, frequency=self.frequency))
 
 def split_n_times(items, n):
     n = min(len(items), n)

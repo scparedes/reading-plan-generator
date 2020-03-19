@@ -8,7 +8,7 @@ from writers import BookReadingPlanWriter
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('--from-date', required=True)
+    parser.add_argument('--start-date', required=True)
     parser.add_argument('--to-date', required=True)
     parser.add_argument('--start-page', required=True, type=int)
     parser.add_argument('--end-page', required=True, type=int)
@@ -21,13 +21,13 @@ if __name__ == '__main__':
     if int(options.excel) + int(options.csv) < 1:
         raise Exception('No reading plan file format was specified.')
 
-    from_date = datetime.strptime(options.from_date, '%Y%m%d')
+    start_date = datetime.strptime(options.start_date, '%Y%m%d')
     to_date = datetime.strptime(options.to_date, '%Y%m%d')
-    book_reading_plan = BookReadingPlan(from_date=from_date, 
-                                          to_date=to_date, 
-                                          startpage=options.start_page, 
-                                          endpage=options.end_page,
-                                          frequency=options.frequency)
+    book_reading_plan = BookReadingPlan(start_date=start_date, 
+                                        to_date=to_date, 
+                                        startpage=options.start_page, 
+                                        endpage=options.end_page,
+                                        frequency=options.frequency)
 
     plan_writer = BookReadingPlanWriter(book_reading_plan)
     if options.excel:
