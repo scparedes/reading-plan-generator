@@ -9,20 +9,13 @@ from math import ceil
 import xlsxwriter
 
 # globals
+from common import WEEKDAYS, START_OF_WEEK
 MONTHS = calendar.month_name
 PAGE_ROW_LIMIT = 35
-PAGE_COLUMN_LIMIT = 15
+PAGE_COLUMN_LIMIT = 16
 COLUMN_INCREMENT = 2
 EXCEL_COLUMNS = dict(enumerate(string.ascii_uppercase, 1))
 DEFAULT_CELL = 0
-WEEKDAYS = {'SUNDAY':6,
-            'MONDAY':0,
-            'TUESDAY':1,
-            'WEDNESDAY':2,
-            'THURSDAY':3,
-            'FRIDAY':4,
-            'SATURDAY':5}
-START_OF_WEEK = WEEKDAYS['MONDAY']
 OUT_FILENAME = 'reading-plan'
 
 
@@ -31,10 +24,10 @@ class BookReadingPlanWriter(object):
         self.plan = book_reading_plan
 
     def write_excel(self, outdir, format_outfile=True):
-        self._write(ExcelWeekLongWriter, outdir, format_outfile)
+        return self._write(ExcelWeekLongWriter, outdir, format_outfile)
 
     def write_csv(self, outdir, format_outfile=False):
-        self._write(CsvWeekLongWriter, outdir, format_outfile)
+        return self._write(CsvWeekLongWriter, outdir, format_outfile)
 
     def _write(self, writer_class, outdir, format_outfile):
         outfile = os.path.join(outdir, OUT_FILENAME)
@@ -43,6 +36,13 @@ class BookReadingPlanWriter(object):
             weekly_writer.write_week(week)
         weekly_writer.write_weekly_summary(self.plan.weeks)
         weekly_writer.close()
+        return weekly_writer.outfile
+
+def post_increment_row(func):
+    def wrapper(*args, **kwargs):
+        func(*args, **kwargs)
+        args[0].increment_row()
+    return wrapper
 
 class WeekLongWriter(object):
     """Writes a WeekLongReadingPlan to disk.
@@ -71,7 +71,6 @@ class WeekLongWriter(object):
         if self.format_outfile:
             self.select_column_and_page(len(week.days))
         self.write_header('%s, week %d' % (month_name, week_of_month(week.start_date)))
-        self.increment_row()
         for day in week.days:
             if not day.startpage:
                 continue
@@ -79,7 +78,6 @@ class WeekLongWriter(object):
                 self.write_data('o  ' + '%d' % (day.startpage))
             else:
                 self.write_data('o  ' + '%d-%d' % (day.startpage, day.endpage))
-            self.increment_row()
 
     def select_column_and_page(self, num_additional_rows):
         if self.additional_rows_will_fit_on_current_page(num_additional_rows):
@@ -97,19 +95,23 @@ class WeekLongWriter(object):
         self.row += 1
 
     def write_weekly_summary(self, weeks):
-        self.increment_row()
-        self.column_increment += 1
-        self.select_column_and_page(1)
+        while not self.is_pointing_to_new_column:
+            self.increment_row()
+            self.select_column_and_page(1)
+        self.column_increment += 2
         self.write_header('Week to Read')
-        self.increment_row()
-        start_weeks = 1 if not weeks[0].start_date.weekday() else 0
-        for overall_week_number, week in enumerate(weeks, start_weeks):
+        first_weekday = weeks[0].start_date.weekday()
+        start_week_offset = int(first_weekday == START_OF_WEEK)
+        for overall_week_number, week in enumerate(weeks, start_week_offset):
             if not week.days:
                 continue
             self.select_column_and_page(1)
-            weekly_summary_row = ('___ %s' % num_to_word(overall_week_number)).ljust(17, '.') + week.formatted_date_range
+            weekly_summary_row = ('___ %s' % num_to_word(overall_week_number)).ljust(20, '.') + week.formatted_date_range
             self.write_data(weekly_summary_row)
-            self.increment_row()
+
+    @property
+    def is_pointing_to_new_column(self):
+        return (self.row - self.row_limit) % self.row_limit == 1
 
     def write_header(self, header_str):
         raise NotImplementedError
@@ -130,9 +132,11 @@ class ExcelWeekLongWriter(WeekLongWriter):
         outfile = os.path.expanduser(outfile)+'.xlsx'
         super(ExcelWeekLongWriter, self).__init__(outfile, format_outfile)
 
+    @post_increment_row
     def write_header(self, header_str):
         self.worksheet.write(cell(self.column, self.row), header_str, self.bold)
 
+    @post_increment_row
     def write_data(self, data_str):
         self.worksheet.write(cell(self.column, self.row), data_str)
 
@@ -144,6 +148,7 @@ class ExcelWeekLongWriter(WeekLongWriter):
         self.bold = self.workbook.add_format({'bold': self.format_outfile})
         if self.format_outfile:
             self.worksheet.set_landscape()
+            self.worksheet.set_margins(left=.25, right=.25, top=.75, bottom=.75)
             self.workbook.formats[DEFAULT_CELL].set_font_size(10)
             self.bold.set_font_size(10)
 
@@ -160,9 +165,11 @@ class CsvWeekLongWriter(WeekLongWriter):
         super(CsvWeekLongWriter, self).__init__(outfile, format_outfile)
         self.rows = []
 
+    @post_increment_row
     def write_header(self, header_str):
         self.write(header_str)
 
+    @post_increment_row
     def write_data(self, data_str):
         self.write(data_str)
 

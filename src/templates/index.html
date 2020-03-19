@@ -32,7 +32,7 @@
             <div class="card card-4">
                 <div class="card-body">
                     <h2 class="title">Reading Plan Generator</h2>
-                    <form method="POST">
+                    <form method="POST" action="{{ url_for('generate_reading_plan')}}">
                         <div class="row row-space">
                             <div class="col-2">
                                 <div class="input-group">
@@ -72,7 +72,7 @@
                                 <div class="input-group">
                                     <label class="label">Reading Frequency</label>
                                     <div class="rs-select2 js-select-simple select--no-search">
-                                        <select name="subject">
+                                        <select name="frequency">
                                             <option disabled="disabled" selected="selected">Frequency</option>
                                             <option>1 day per week</option>
                                             <option>2 days per week</option>
@@ -88,10 +88,10 @@
                             </div>
                             <div class="col-2">
                                 <div class="input-group">
-                                    <label class="label">Output File Type</label>
+                                    <label class="label">Output File</label>
                                     <div class="rs-select2 js-select-simple select--no-search">
-                                        <select name="subject">
-                                            <option disabled="disabled" selected="selected">File Type</option>
+                                        <select name="output_file_type">
+                                            <option disabled="disabled" selected="selected">Type</option>
                                             <option>Excel (recommended)</option>
                                             <option>CSV</option>
                                         </select>
@@ -103,7 +103,7 @@
                         <div class="input-group">
                             <div class="p-t-10">
                                 <label class="radio-container m-r-45">Format Outfile (Recommended)
-                                    <input type="checkbox" checked="checked" name="format-outfile">
+                                    <input type="checkbox" checked="checked" name="format_outfile">
                                     <span class="checkmark"></span>
                                 </label>
                             </div>

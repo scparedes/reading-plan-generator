@@ -3,13 +3,13 @@ from datetime import datetime
 import argparse
 
 # custom libs
-from reading_plans import BookReadingPlan
+from plans import BookReadingPlan
 from writers import BookReadingPlanWriter
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--start-date', required=True)
-    parser.add_argument('--to-date', required=True)
+    parser.add_argument('--end-date', required=True)
     parser.add_argument('--start-page', required=True, type=int)
     parser.add_argument('--end-page', required=True, type=int)
     parser.add_argument('--frequency', type=int, default=5)
@@ -22,9 +22,9 @@ if __name__ == '__main__':
         raise Exception('No reading plan file format was specified.')
 
     start_date = datetime.strptime(options.start_date, '%Y%m%d')
-    to_date = datetime.strptime(options.to_date, '%Y%m%d')
+    end_date = datetime.strptime(options.end_date, '%Y%m%d')
     book_reading_plan = BookReadingPlan(start_date=start_date, 
-                                        to_date=to_date, 
+                                        end_date=end_date, 
                                         startpage=options.start_page, 
                                         endpage=options.end_page,
                                         frequency=options.frequency)
