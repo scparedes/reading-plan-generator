@@ -9,7 +9,7 @@ Generates a reading plan as an Excel or CSV spreadsheet based on:
 
 #### Recommendations and Reminders
 * To view your reading plan as it will be printed, go to 'View' -> 'Page Layout' in your Excel options.
-* The Excel output format is recommended for easy-to-look at spreadsheet results. Excel version 16 is recommended for your version of Excel.
+* Excel version 16 is recommended for your version of Excel.
 * There is a limit on the length of reading plans to protect against inundating the Google App Engine.  The limit is set to 3 years in the Web App.
 * There is no form/input validation implemented in the Web App, so failure to enter expected types of values in specific fields will render ugly stacktraces for end-users.
 
