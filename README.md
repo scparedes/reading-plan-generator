@@ -26,6 +26,6 @@ $ cd src/reading_plan
 $ python create_plan.py --help
 ```
 ## Why?
-I created this app because I've experience incredible success with an N-day reading strategy for years.  With plans like these, I've been able to tackle seemingly impossible reads but reading one day at time consistently over a long period of time.  Textbooks, religious texts, novels, even encyclopedia's become reasonable to consume in their entirety when you use an N-day reading plan.  My personal preference is a frequency of 5 days per week (5-day reading plan).
+I created this app because I've experienced incredible success with an N-day reading strategy for years. The 5-day reading plan has helped me read thousands of dense pages of literature that I would have never had the courage to tackle beforehand.  Textbooks, religious texts, novels, anything. With these plans you can tackle any book over any time frame you desire.
 
 Also, I've developed in Python 2.7 for years but have yet to develop anything in Python 3, so this was a good exercise to receive some Python 3 exposure.
