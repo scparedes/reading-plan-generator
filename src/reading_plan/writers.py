@@ -10,7 +10,7 @@ import uuid
 import xlsxwriter
 
 # globals
-from common import WEEKDAYS, START_OF_WEEK
+from common import WEEKDAYS, START_OF_WEEK, week_of_month
 MONTHS = calendar.month_name
 PAGE_ROW_LIMIT = 35
 PAGE_COLUMN_LIMIT = 16
@@ -201,12 +201,6 @@ class CsvWeekLongWriter(WeekLongWriter):
     def close(self):
         self.csv_writer.writerows(self.rows)
         self.readingplan.close()
-
-def week_of_month(dt):
-    first_day = dt.replace(day=1)
-    adjusted_dom = dt.day + first_day.weekday() + ((7 - START_OF_WEEK) % 7)
-    week_num = int(ceil(adjusted_dom/7.0))
-    return week_num - ((7 - START_OF_WEEK) % 7)
 
 def cell(column, row):
     return '%s%s' % (EXCEL_COLUMNS[column], row)

@@ -37,5 +37,5 @@ if __name__ == '__main__':
         plan_writer.write_excel(options.outdir, format_outfile=options.format_outfile)
     if options.csv:
         if options.book_name:
-                print('WARNING: CSV files do not support headers, so your book name will not be integrated into your spreadsheet.')
+                print('WARNING: CSV files do not support headers, so your book name will not be integrated as a header into your spreadsheet.')
         plan_writer.write_csv(options.outdir, format_outfile=options.format_outfile)

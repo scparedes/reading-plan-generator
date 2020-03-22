@@ -1,7 +1,7 @@
 # native python libs
 from datetime import timedelta
 from math import ceil
-from common import WEEKDAYS, START_OF_WEEK
+from common import WEEKDAYS, START_OF_WEEK, week_of_month
 
 # globals
 YEAR_LIMIT = 3
@@ -42,23 +42,6 @@ class WeekLongReadingPlan(ReadingPlan):
         super(WeekLongReadingPlan, self).__init__(start_date, end_date, startpage, endpage, frequency, name)
         self.days = []
 
-    def populate_days(self):
-        self.structure_days()
-        placeholders = self.get_page_placeholders()
-        empty_days = split_n_times(placeholders, min(self.frequency, len(self.days)))
-        pages = self.pages
-        for day, empty_day in zip(self.days, empty_days):
-            day.startpage = day.endpage = pages.pop(0)
-            for _ in empty_day[1:]:
-                day.endpage = pages.pop(0)
-
-    def structure_days(self):
-        self.days = []
-        cur_date = self.start_date
-        while not (cur_date > self.end_date):
-            self.days.append(ReadingPlan(start_date=cur_date, end_date=cur_date))
-            cur_date += timedelta(days=1)
-
 class BookReadingPlan(ReadingPlan):
     """A reading plan based off multiple weeks of reading.
     """
@@ -72,31 +55,61 @@ class BookReadingPlan(ReadingPlan):
         self.populate_weeks()
 
     def populate_weeks(self):
-        self.structure_weeks()
-        placeholders = self.get_page_placeholders()
-        splits = min(len(self.weeks), int(ceil(len(self.pages)/self.frequency)))
-        empty_weeks = split_n_times(placeholders, splits)
-        # TODO: Normally distribute (or "evenly" pages) across weeks.
         pages = self.pages
-        for week, empty_week in zip(self.weeks, empty_weeks):
-            week.startpage = week.endpage = pages.pop(0)
-            for _ in empty_week[1:]:
-                week.endpage = pages.pop(0)
-            week.populate_days()
+        dates = self.get_dates_in_plan()
+        split_pages = split_n_times(pages, len(dates))
+        days = []
+        for d, pages in zip(dates, split_pages):
+            if d.weekday() == START_OF_WEEK and d != self.start_date:   
+                week_long_plan = self.create_week_long_plan(days)
+                self.weeks.append(week_long_plan)
+                days = []
+            startpage = endpage = pages.pop(0)
+            for page in pages[1:]:
+                endpage = page
+            day = ReadingPlan(start_date=d, end_date=d, startpage=startpage, endpage=endpage)
+            days.append(day)
+        if days:
+            week_long_plan = self.create_week_long_plan(days)
+            self.weeks.append(week_long_plan)
 
-    def structure_weeks(self):
-        self.weeks = []
-        cur_date = self.start_date
-        first_week_day = self.start_date
+    def create_week_long_plan(self, days):
+        week_long_plan = WeekLongReadingPlan(start_date=days[0].start_date,
+                                             end_date=days[-1].end_date,
+                                             startpage=days[0].startpage,
+                                             endpage=days[-1].endpage,
+                                             frequency=self.frequency)
+        week_long_plan.days = days
+        return week_long_plan
+
+    def get_dates_in_plan(self):
+        all_dates = get_days(self.start_date, self.end_date)
+        dates = self.adjust_dates_for_reading_frequency(all_dates)
+        return dates
+
+    def adjust_dates_for_reading_frequency(self, all_dates):
+        dates = []
+        cur_date = all_dates[0]
+        dates_per_week = 0
         while not (cur_date > self.end_date):
-            if cur_date.weekday() == START_OF_WEEK:
-                last_week_day = cur_date - timedelta(days=1)
-                self.weeks.append(WeekLongReadingPlan(start_date=first_week_day, end_date=last_week_day, frequency=self.frequency))
-                first_week_day = cur_date
+            dates_per_week += 1
+            if cur_date.weekday() == START_OF_WEEK and cur_date != self.start_date:
+                dates_per_week = 0
+            if dates_per_week >= self.frequency:
+                cur_date += timedelta(days=1)
+                continue
+            dates.append(cur_date)
             cur_date += timedelta(days=1)
-        if last_week_day != cur_date:
-            last_week_day = cur_date - timedelta(days=1)
-            self.weeks.append(WeekLongReadingPlan(start_date=first_week_day, end_date=last_week_day, frequency=self.frequency))
+        return dates
+
+def get_days(from_date, to_date):
+    days = []
+    if from_date and to_date:
+        cur_day = from_date
+        while cur_day <= to_date:
+            days.append(cur_day)
+            cur_day += timedelta(days=1)
+    return days
 
 def split_n_times(items, n):
     n = min(len(items), n)
