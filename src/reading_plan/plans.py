@@ -60,10 +60,11 @@ class BookReadingPlan(ReadingPlan):
         split_pages = split_n_times(pages, len(dates))
         days = []
         for d, pages in zip(dates, split_pages):
-            if d.weekday() == START_OF_WEEK and d != self.start_date:   
-                week_long_plan = self.create_week_long_plan(days)
-                self.weeks.append(week_long_plan)
-                days = []
+            if d.weekday() == START_OF_WEEK and d != self.start_date:
+                if self.frequency != 1 or days:
+                    week_long_plan = self.create_week_long_plan(days)
+                    self.weeks.append(week_long_plan)
+                    days = []
             startpage = endpage = pages.pop(0)
             for page in pages[1:]:
                 endpage = page
@@ -74,8 +75,15 @@ class BookReadingPlan(ReadingPlan):
             self.weeks.append(week_long_plan)
 
     def create_week_long_plan(self, days):
+        if days[-1].end_date == self.end_date:
+            end_date = self.end_date
+        else:
+            cur_date = days[-1].end_date
+            while cur_date.weekday() != START_OF_WEEK or cur_date == days[0].start_date:
+                cur_date += timedelta(days=1)
+            end_date = cur_date - timedelta(days=1)
         week_long_plan = WeekLongReadingPlan(start_date=days[0].start_date,
-                                             end_date=days[-1].end_date,
+                                             end_date=end_date,
                                              startpage=days[0].startpage,
                                              endpage=days[-1].endpage,
                                              frequency=self.frequency)
@@ -91,6 +99,8 @@ class BookReadingPlan(ReadingPlan):
         dates = []
         cur_date = all_dates[0]
         dates_per_week = 0
+        if self.frequency == 1:
+            dates.append(cur_date)
         while not (cur_date > self.end_date):
             dates_per_week += 1
             if cur_date.weekday() == START_OF_WEEK and cur_date != self.start_date:
