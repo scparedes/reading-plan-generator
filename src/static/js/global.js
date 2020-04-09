@@ -66,6 +66,9 @@
         console.log(err);
     }
 
+    /*
+        Conditional formatting
+    */
     $("#output-file").change(function() {
         var val = $(this).val();
         if (val === "Excel (recommended)") {
@@ -80,4 +83,89 @@
         }
     });
 
+    /*
+        Validation (used https://www.sitepoint.com/basic-jquery-form-validation-tutorial/ as reference)
+    */
+   
+    // Extra event triggers for validation
+    $('select[name="frequency"]').change(function() {
+        $('select[name="frequency"]').valid();
+    });
+
+    $('#output-file').change(function() {
+        $('#output-file').valid();
+    });
+
+    $(document.body).click( function() {
+        if ($('input[name ="end_date"]')[0].value) {
+            $('input[name ="end_date"]').valid();
+        }
+    });
+
+    // Custom validators
+    $.validator.addMethod("dateFormat", 
+    function(value, element) {
+        return value.match(/^\d{2}\/\d{2}\/\d{4}$/);
+    },
+    "Please enter a date in the format MM/DD/YYYY.");
+
+    $.validator.addMethod("withinDateLimit",
+    function(value, element) {
+        try {
+            if (!$('input[name ="start_date"]')[0].value) {
+                return true;
+            }
+            var MONTH = 0;
+            var DAY = 1;
+            var YEAR = 2;
+            var start_date_parts = $('input[name ="start_date"]')[0].value.split('/');
+            var end_date_parts = value.split('/');
+            var start_date = new Date(start_date_parts[YEAR], start_date_parts[MONTH]-1, start_date_parts[DAY]);
+            var end_date = new Date(end_date_parts[YEAR], end_date_parts[MONTH]-1, end_date_parts[DAY]);
+            return (new Date(end_date-start_date).getUTCFullYear() - 1970) < 3;
+        } catch (err) {
+            return true;
+        }
+    },
+    "Please enter an end date that is within 3 years of the start date.");
+
+    // Validation rules
+    $("form[name='plan_form']").validate({
+        rules: {
+            start_date: {
+                required: true,
+                dateFormat: true
+            },
+            end_date: {
+                required: true,
+                dateFormat: true,
+                withinDateLimit: true
+            },
+            start_page: {
+                required: true,
+                digits: true
+            },
+            end_page: {
+                required: true,
+                digits: true
+            },
+            frequency: {
+                required: true
+            },
+            output_file_type: {
+                required: true
+            }
+        },
+        errorPlacement: function(error, element) { // Referenced https://stackoverflow.com/a/26500000
+            var special_placement = $(element).data('error');
+            if (special_placement) {
+                $(special_placement).append(error)
+            } else {
+                error.insertAfter(element);
+            }
+        },
+        submitHandler: function(form) {
+            form.submit();
+        }
+    });
 })(jQuery);

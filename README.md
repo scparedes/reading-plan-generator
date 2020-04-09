@@ -11,7 +11,6 @@ Generates a reading plan as an Excel or CSV spreadsheet based on:
 * To view your reading plan as it will be printed, go to 'View' -> 'Page Layout' in your Excel options.
 * Excel version 16 is recommended for your version of Excel.
 * There is a limit on the length of reading plans to protect against inundating the Google App Engine.  The limit is set to 3 years in the Web App.
-* There is no form/input validation implemented in the Web App, so failure to enter expected types of values in specific fields will render ugly stacktraces for end-users.
 
 ## Using the Web App
 Plans can be generated using the Google App Engine's hosting of the app [here](https://reading-plan-generator.appspot.com/).

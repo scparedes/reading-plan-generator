@@ -32,14 +32,15 @@
             <div class="card card-4">
                 <div class="card-body">
                     <h2 class="title">Reading Plan Generator</h2>
-                    <form method="POST" action="{{ url_for('generate_reading_plan')}}">
+                    <form method="POST" action="{{ url_for('generate_reading_plan')}}" name="plan_form">
+                    <form method="POST" name="plan_form">
                         <div class="row row-space">
                             <div class="col-2">
                                 <div class="input-group">
                                     <label class="label">Start Date</label>
                                     <div class="input-group-icon">
                                         <input class="input--style-4 js-datepicker" type="text" name="start_date">
-                                        <i class="zmdi zmdi-calendar-note input-icon js-btn-calendar"></i>
+                                        <!-- <i class="zmdi zmdi-calendar-note input-icon js-btn-calendar"></i> -->
                                     </div>
                                 </div>
                             </div>
@@ -48,7 +49,7 @@
                                     <label class="label">End Date</label>
                                     <div class="input-group-icon">
                                         <input class="input--style-4 js-datepicker" type="text" name="end_date">
-                                        <i class="zmdi zmdi-calendar-note input-icon js-btn-calendar"></i>
+                                        <!-- <i class="zmdi zmdi-calendar-note input-icon js-btn-calendar"></i> -->
                                     </div>
                                 </div>
                             </div>
@@ -72,7 +73,7 @@
                                 <div class="input-group">
                                     <label class="label">Reading Frequency</label>
                                     <div class="rs-select2 js-select-simple select--no-search">
-                                        <select name="frequency">
+                                        <select name="frequency" data-error="#frequency">
                                             <option disabled="disabled" selected="selected">Frequency</option>
                                             <option>1 day per week</option>
                                             <option>2 days per week</option>
@@ -84,19 +85,21 @@
                                         </select>
                                         <div class="select-dropdown"></div>
                                     </div>
+                                    <span id="frequency"></span>
                                 </div>
                             </div>
                             <div class="col-2">
                                 <div class="input-group">
                                     <label class="label">Output File</label>
                                     <div class="rs-select2 js-select-simple select--no-search">
-                                        <select name="output_file_type" id="output-file">
+                                        <select name="output_file_type" id="output-file" data-error="#output_file">
                                             <option disabled="disabled" selected="selected">Type</option>
                                             <option>Excel (recommended)</option>
                                             <option>CSV</option>
                                         </select>
                                         <div class="select-dropdown"></div>
                                     </div>
+                                    <span id="output_file"></span>
                                 </div>
                             </div>
                         </div>
@@ -135,7 +138,8 @@
     <script src="../static/vendor/select2/select2.min.js"></script>
     <script src="../static/vendor/datepicker/moment.min.js"></script>
     <script src="../static/vendor/datepicker/daterangepicker.js"></script>
-
+    <!-- Validator JS-->
+    <script src="../static/vendor/jquery_validate/jquery.validate.min.js"></script>
     <!-- Main JS-->
     <script src="../static/js/global.js"></script>
 

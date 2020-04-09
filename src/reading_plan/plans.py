@@ -50,7 +50,7 @@ class BookReadingPlan(ReadingPlan):
         if start_date > end_date:
             raise ValueError('Start Date must be smaller than End Date!')
         if (end_date - start_date).days > 365 * YEAR_LIMIT:
-            raise ValueError('Plans can only be generated for 2 years of reading or less!')
+            raise ValueError('Plans can only be generated for 3 years of reading or less!')
         self.weeks = []
         self.populate_weeks()
 
