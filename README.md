@@ -26,5 +26,3 @@ $ python create_plan.py --help
 ```
 ## Why?
 I created this app because I've experienced incredible success with an N-day reading strategy for years. The 5-day reading plan has helped me read thousands of dense pages of literature that I would have never had the courage to tackle beforehand.  Textbooks, religious texts, novels, anything. With these plans you can tackle any book over any time frame you desire.
-
-Also, I've developed in Python 2.7 for years but have yet to develop anything in Python 3, so this was a good exercise to receive some Python 3 exposure.
