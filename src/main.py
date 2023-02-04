@@ -1,4 +1,6 @@
 # python native libs
+from reading_plan.writers import BookReadingPlanWriter, OUT_FILENAME
+from reading_plan.plans import BookReadingPlan
 from datetime import datetime
 import os
 import sys
@@ -10,23 +12,24 @@ from flask import Flask, render_template, send_file, request, abort
 # custom libs
 dirname = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(dirname, 'reading_plan'))
-from reading_plan.plans import BookReadingPlan
-from reading_plan.writers import BookReadingPlanWriter, OUT_FILENAME
 
 # globals
 NUMBER = 0
-OUTDIR = '/tmp' # https://cloud.google.com/appengine/docs/standard/python3/using-temp-files
+OUTDIR = '/tmp'  # https://cloud.google.com/appengine/docs/standard/python3/using-temp-files
 
 app = Flask(__name__)
+
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
+
 @app.errorhandler(400)
 def error(e):
     error_message = str(e).replace('\n', '<br>').replace('\t', '&nbsp;'*4)
     return render_template('error.html', error=error_message)
+
 
 @app.route('/generateReadingPlan', methods=['POST'])
 def generate_reading_plan():
@@ -48,17 +51,21 @@ def generate_reading_plan():
         writer = BookReadingPlanWriter(book_reading_plan)
         if 'csv' in output_file_type:
             mimetype = 'text/csv'
-            outfile_path = writer.write_csv(OUTDIR, format_outfile=format_outfile)
+            outfile_path = writer.write_csv(
+                OUTDIR, format_outfile=format_outfile)
         elif 'excel' in output_file_type:
             mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            outfile_path = writer.write_excel(OUTDIR, format_outfile=format_outfile)
+            outfile_path = writer.write_excel(
+                OUTDIR, format_outfile=format_outfile)
         mem_outfile = disk_to_memory(outfile_path)
         return send_file(mem_outfile,
-                        mimetype=mimetype,
-                        attachment_filename='%s%s' % (OUT_FILENAME, os.path.splitext(outfile_path)[1]),
-                        as_attachment=True)
+                         mimetype=mimetype,
+                         attachment_filename='%s%s' % (
+                             OUT_FILENAME, os.path.splitext(outfile_path)[1]),
+                         as_attachment=True)
     except Exception as e:
         abort(400, e)
+
 
 def disk_to_memory(disk_path):
     mem_file = io.BytesIO()
@@ -67,6 +74,7 @@ def disk_to_memory(disk_path):
     mem_file.seek(0)
     os.remove(disk_path)
     return mem_file
+
 
 if __name__ == "__main__":
     app.run(debug=True)

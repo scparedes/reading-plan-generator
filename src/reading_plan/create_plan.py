@@ -25,17 +25,21 @@ if __name__ == '__main__':
 
     start_date = datetime.strptime(options.start_date, '%Y%m%d')
     end_date = datetime.strptime(options.end_date, '%Y%m%d')
-    book_reading_plan = BookReadingPlan(start_date=start_date, 
-                                        end_date=end_date, 
-                                        startpage=options.start_page, 
+    book_reading_plan = BookReadingPlan(start_date=start_date,
+                                        end_date=end_date,
+                                        startpage=options.start_page,
                                         endpage=options.end_page,
-                                        frequency=options.frequency, 
+                                        frequency=options.frequency,
                                         name=options.book_name)
 
     plan_writer = BookReadingPlanWriter(book_reading_plan)
     if options.excel:
-        plan_writer.write_excel(options.outdir, format_outfile=options.format_outfile)
+        plan_writer.write_excel(options.outdir,
+                                format_outfile=options.format_outfile)
     if options.csv:
         if options.book_name:
-                print('WARNING: CSV files do not support headers, so your book name will not be integrated as a header into your spreadsheet.')
-        plan_writer.write_csv(options.outdir, format_outfile=options.format_outfile)
+            print('WARNING: CSV files do not support headers, so your book ' +
+                  'name will not be integrated as a header into your ' +
+                  'spreadsheet.')
+        plan_writer.write_csv(
+            options.outdir, format_outfile=options.format_outfile)

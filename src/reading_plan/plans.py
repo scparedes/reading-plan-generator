@@ -1,7 +1,6 @@
 # native python libs
 from datetime import timedelta
-from math import ceil
-from common import WEEKDAYS, START_OF_WEEK, week_of_month
+from common import START_OF_WEEK
 
 # globals
 YEAR_LIMIT = 3
@@ -10,7 +9,14 @@ YEAR_LIMIT = 3
 class ReadingPlan(object):
     """A minimalist reading plan.
     """
-    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=None, name=None):
+
+    def __init__(self,
+                 start_date=None,
+                 end_date=None,
+                 startpage=None,
+                 endpage=None,
+                 frequency=None,
+                 name=None):
         self.start_date = start_date
         self.end_date = end_date
         self.startpage = startpage
@@ -35,22 +41,41 @@ class ReadingPlan(object):
             fdr += str(self.end_date.day)
         return fdr
 
+
 class WeekLongReadingPlan(ReadingPlan):
     """A reading plan based off of 1 week of reading.
     """
-    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=5, name=None):
-        super(WeekLongReadingPlan, self).__init__(start_date, end_date, startpage, endpage, frequency, name)
+
+    def __init__(self,
+                 start_date=None,
+                 end_date=None,
+                 startpage=None,
+                 endpage=None,
+                 frequency=5,
+                 name=None):
+        super(WeekLongReadingPlan, self).__init__(
+            start_date, end_date, startpage, endpage, frequency, name)
         self.days = []
+
 
 class BookReadingPlan(ReadingPlan):
     """A reading plan based off multiple weeks of reading.
     """
-    def __init__(self, start_date=None, end_date=None, startpage=None, endpage=None, frequency=5, name=None):
-        super(BookReadingPlan, self).__init__(start_date, end_date, startpage, endpage, frequency, name)
+
+    def __init__(self,
+                 start_date=None,
+                 end_date=None,
+                 startpage=None,
+                 endpage=None,
+                 frequency=5,
+                 name=None):
+        super(BookReadingPlan, self).__init__(
+            start_date, end_date, startpage, endpage, frequency, name)
         if start_date > end_date:
             raise ValueError('Start Date must be smaller than End Date!')
         if (end_date - start_date).days > 365 * YEAR_LIMIT:
-            raise ValueError('Plans can only be generated for 3 years of reading or less!')
+            raise ValueError(
+                'Plans can only be generated for 3 years of reading or less!')
         self.weeks = []
         self.populate_weeks()
 
@@ -68,7 +93,10 @@ class BookReadingPlan(ReadingPlan):
             startpage = endpage = pages.pop(0)
             for page in pages[1:]:
                 endpage = page
-            day = ReadingPlan(start_date=d, end_date=d, startpage=startpage, endpage=endpage)
+            day = ReadingPlan(start_date=d,
+                              end_date=d,
+                              startpage=startpage,
+                              endpage=endpage)
             days.append(day)
         if days:
             week_long_plan = self.create_week_long_plan(days)
@@ -79,7 +107,8 @@ class BookReadingPlan(ReadingPlan):
             end_date = self.end_date
         else:
             cur_date = days[-1].end_date
-            while cur_date.weekday() != START_OF_WEEK or cur_date == days[0].start_date:
+            while (cur_date.weekday() != START_OF_WEEK or
+                   cur_date == days[0].start_date):
                 cur_date += timedelta(days=1)
             end_date = cur_date - timedelta(days=1)
         week_long_plan = WeekLongReadingPlan(start_date=days[0].start_date,
@@ -103,7 +132,8 @@ class BookReadingPlan(ReadingPlan):
             dates.append(cur_date)
         while not (cur_date > self.end_date):
             dates_per_week += 1
-            if cur_date.weekday() == START_OF_WEEK and cur_date != self.start_date:
+            if (cur_date.weekday() == START_OF_WEEK and
+                cur_date != self.start_date):
                 dates_per_week = 0
             if dates_per_week >= self.frequency:
                 cur_date += timedelta(days=1)
@@ -111,6 +141,7 @@ class BookReadingPlan(ReadingPlan):
             dates.append(cur_date)
             cur_date += timedelta(days=1)
         return dates
+
 
 def get_days(from_date, to_date):
     days = []
@@ -120,6 +151,7 @@ def get_days(from_date, to_date):
             days.append(cur_day)
             cur_day += timedelta(days=1)
     return days
+
 
 def split_n_times(items, n):
     n = min(len(items), n)
