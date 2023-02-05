@@ -1,10 +1,10 @@
-# native python libs
-from datetime import datetime
 import argparse
+from datetime import datetime
 
-# custom libs
+
 from plans import BookReadingPlan
 from writers import BookReadingPlanWriter
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=True)

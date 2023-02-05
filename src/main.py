@@ -1,4 +1,5 @@
 # python native libs
+from typing import Any
 from reading_plan.writers import BookReadingPlanWriter, OUT_FILENAME
 from reading_plan.plans import BookReadingPlan
 from datetime import datetime
@@ -26,7 +27,7 @@ def home():
 
 
 @app.errorhandler(400)
-def error(e):
+def error(e: Any):
     error_message = str(e).replace('\n', '<br>').replace('\t', '&nbsp;'*4)
     return render_template('error.html', error=error_message)
 
@@ -67,7 +68,7 @@ def generate_reading_plan():
         abort(400, e)
 
 
-def disk_to_memory(disk_path):
+def disk_to_memory(disk_path: str):
     mem_file = io.BytesIO()
     with open(disk_path, 'rb') as f:
         mem_file.write(f.read())

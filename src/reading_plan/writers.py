@@ -3,7 +3,10 @@ import os
 import csv
 import string
 import calendar
+from typing import Callable, List
 import uuid
+
+from plans import BookReadingPlan, WeekLongReadingPlan
 
 # 3rd party libraries
 import xlsxwriter
@@ -19,17 +22,21 @@ OUT_FILENAME = 'reading-plan'
 
 
 class BookReadingPlanWriter(object):
-    def __init__(self, book_reading_plan):
+    def __init__(self, book_reading_plan: BookReadingPlan):
         self.plan = book_reading_plan
 
-    def write_excel(self, outdir, format_outfile=True):
+    def write_excel(self, outdir: str, format_outfile: bool = True):
         return self._write(
             ExcelWeekLongWriter, outdir, format_outfile, self.plan.name)
 
-    def write_csv(self, outdir, format_outfile=False):
+    def write_csv(self, outdir: str, format_outfile: bool = True):
         return self._write(CsvWeekLongWriter, outdir, format_outfile)
 
-    def _write(self, writer_class, outdir, format_outfile, plan_name=None):
+    def _write(self,
+               writer_class,
+               outdir: str,
+               format_outfile: bool = True,
+               plan_name: str = None):
         outfile = os.path.join(outdir, OUT_FILENAME)
         if outdir == '/tmp':
             outfile += str(uuid.uuid4())
@@ -44,23 +51,23 @@ class BookReadingPlanWriter(object):
         return weekly_writer.outfile
 
 
-def post_increment_row(func):
+def post_increment_row(func: Callable):
     def wrapper(*args, **kwargs):
         func(*args, **kwargs)
         args[0].increment_row()
     return wrapper
 
 
-class WeekLongWriter(object):
+class WeekLongWriter():
     """Writes a WeekLongReadingPlan to disk.
     """
 
     def __init__(self,
-                 outfile=None,
-                 format_outfile=True,
-                 row_limit=PAGE_ROW_LIMIT,
-                 column_limit=PAGE_COLUMN_LIMIT,
-                 column_increment=COLUMN_INCREMENT):
+                 outfile: str = None,
+                 format_outfile: bool = True,
+                 row_limit: int = PAGE_ROW_LIMIT,
+                 column_limit: int = PAGE_COLUMN_LIMIT,
+                 column_increment: int = COLUMN_INCREMENT):
         self.outfile = outfile
         self.format_outfile = format_outfile
         self.open()
@@ -73,7 +80,7 @@ class WeekLongWriter(object):
         self.column_overflow_buffer = self.column_limit - 1
         self._weeks_seen = 0
 
-    def write_week(self, week):
+    def write_week(self, week: WeekLongReadingPlan):
         self._weeks_seen += 1
         if not week.days:
             return
@@ -90,7 +97,7 @@ class WeekLongWriter(object):
             else:
                 self.write_data('o  ' + '%d-%d' % (day.startpage, day.endpage))
 
-    def select_column_and_page(self, num_additional_rows):
+    def select_column_and_page(self, num_additional_rows: int):
         if self.additional_rows_will_fit_on_current_page(num_additional_rows):
             self.column += self.column_increment
             self.row = 1 + self.page * self.row_limit
@@ -99,13 +106,15 @@ class WeekLongWriter(object):
                 self.page += 1
                 self.row = 1 + self.page * self.row_limit
 
-    def additional_rows_will_fit_on_current_page(self, num_rows):
-        return num_rows + 1 + (self.row - self.page * self.row_limit) > self.row_limit
+    def additional_rows_will_fit_on_current_page(self, num_rows: int):
+        return (num_rows + 1 + (self.row -
+                                self.page * self.row_limit)
+                > self.row_limit)
 
     def increment_row(self):
         self.row += 1
 
-    def write_weekly_summary(self, weeks):
+    def write_weekly_summary(self, weeks: List[WeekLongReadingPlan]):
         if self.format_outfile:
             while not self.is_pointing_to_new_column:
                 self.increment_row()
@@ -128,10 +137,10 @@ class WeekLongWriter(object):
     def is_pointing_to_new_column(self):
         return (self.row - self.row_limit) % self.row_limit == 1
 
-    def write_header(self, header_str):
+    def write_header(self, header: str):
         raise NotImplementedError
 
-    def write_data(self, data_str):
+    def write_data(self, data: str):
         raise NotImplementedError
 
     def open(self):
@@ -145,21 +154,24 @@ class ExcelWeekLongWriter(WeekLongWriter):
     """Writes a WeekLongReadingPlan as an Excel spreadsheet to disk.
     """
 
-    def __init__(self, outfile=None, format_outfile=True, plan_name=None):
+    def __init__(self,
+                 outfile: str = None,
+                 format_outfile: bool = True,
+                 plan_name: str = None):
         outfile = os.path.expanduser(outfile)+'.xlsx'
         self.plan_name = plan_name
         super(ExcelWeekLongWriter, self).__init__(outfile, format_outfile)
 
     @post_increment_row
-    def write_header(self, header_str):
-        self.worksheet.write(cell(self.column, self.row),
-                             header_str,
+    def write_header(self, header: str):
+        self.worksheet.write(to_coordinate(self.column, self.row),
+                             header,
                              self.bold)
 
     @post_increment_row
-    def write_data(self, data_str):
-        self.worksheet.write(cell(self.column, self.row),
-                             data_str)
+    def write_data(self, data: str):
+        self.worksheet.write(to_coordinate(self.column, self.row),
+                             data)
 
     def open(self):
         if os.path.exists(self.outfile):
@@ -187,23 +199,23 @@ class CsvWeekLongWriter(WeekLongWriter):
     """Writes a WeekLongReadingPlan as a CSV to disk.
     """
 
-    def __init__(self, outfile=None, format_outfile=False):
+    def __init__(self, outfile: str = None, format_outfile: bool = False):
         outfile = os.path.expanduser(outfile)+'.csv'
         super(CsvWeekLongWriter, self).__init__(outfile, format_outfile)
         self.rows = []
 
     @post_increment_row
-    def write_header(self, header_str):
-        self.write(header_str)
+    def write_header(self, header: str):
+        self.write(header)
 
     @post_increment_row
-    def write_data(self, data_str):
-        self.write(data_str)
+    def write_data(self, data: str):
+        self.write(data)
 
-    def write(self, cell_string):
+    def write(self, cell: str):
         while len(self.rows) < self.row:
             self.rows.append([])
-        self.rows[self.row-1].extend([cell_string])
+        self.rows[self.row-1].extend([cell])
 
     def open(self):
         if os.path.exists(self.outfile):
@@ -219,7 +231,7 @@ class CsvWeekLongWriter(WeekLongWriter):
         self.readingplan.close()
 
 
-def cell(column, row):
+def to_coordinate(column: int, row: int):
     return '%s%s' % (EXCEL_COLUMNS[column], row)
 
 
@@ -232,7 +244,7 @@ TENS_NUMBERS = ['Twenty', 'Thirty', 'Forty', 'Fifty',
                 'Sixty', 'Seventy', 'Eighty', 'Ninety']
 
 
-def num_to_word(num):
+def num_to_word(num: int):
     if 0 <= num <= 19:
         return BASE_NUMBERS[num]
     elif 20 <= num <= 99:

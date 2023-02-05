@@ -1,22 +1,24 @@
-# native python libs
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any, List
+
+
 from common import START_OF_WEEK
 
-# globals
+
 YEAR_LIMIT = 3
 
 
-class ReadingPlan(object):
+class ReadingPlan:
     """A minimalist reading plan.
     """
 
     def __init__(self,
-                 start_date=None,
-                 end_date=None,
-                 startpage=None,
-                 endpage=None,
-                 frequency=None,
-                 name=None):
+                 start_date: datetime = None,
+                 end_date: datetime = None,
+                 startpage: int = None,
+                 endpage: int = None,
+                 frequency: int = 5,
+                 name: str = None):
         self.start_date = start_date
         self.end_date = end_date
         self.startpage = startpage
@@ -47,12 +49,12 @@ class WeekLongReadingPlan(ReadingPlan):
     """
 
     def __init__(self,
-                 start_date=None,
-                 end_date=None,
-                 startpage=None,
-                 endpage=None,
-                 frequency=5,
-                 name=None):
+                 start_date: datetime = None,
+                 end_date: datetime = None,
+                 startpage: int = None,
+                 endpage: int = None,
+                 frequency: int = 5,
+                 name: str = None):
         super(WeekLongReadingPlan, self).__init__(
             start_date, end_date, startpage, endpage, frequency, name)
         self.days = []
@@ -63,12 +65,12 @@ class BookReadingPlan(ReadingPlan):
     """
 
     def __init__(self,
-                 start_date=None,
-                 end_date=None,
-                 startpage=None,
-                 endpage=None,
-                 frequency=5,
-                 name=None):
+                 start_date: datetime = None,
+                 end_date: datetime = None,
+                 startpage: int = None,
+                 endpage: int = None,
+                 frequency: int = 5,
+                 name: str = None):
         super(BookReadingPlan, self).__init__(
             start_date, end_date, startpage, endpage, frequency, name)
         if start_date > end_date:
@@ -102,7 +104,7 @@ class BookReadingPlan(ReadingPlan):
             week_long_plan = self.create_week_long_plan(days)
             self.weeks.append(week_long_plan)
 
-    def create_week_long_plan(self, days):
+    def create_week_long_plan(self, days: List[datetime]):
         if days[-1].end_date == self.end_date:
             end_date = self.end_date
         else:
@@ -124,7 +126,7 @@ class BookReadingPlan(ReadingPlan):
         dates = self.adjust_dates_for_reading_frequency(all_dates)
         return dates
 
-    def adjust_dates_for_reading_frequency(self, all_dates):
+    def adjust_dates_for_reading_frequency(self, all_dates: List[datetime]):
         dates = []
         cur_date = all_dates[0]
         dates_per_week = 0
@@ -143,7 +145,7 @@ class BookReadingPlan(ReadingPlan):
         return dates
 
 
-def get_days(from_date, to_date):
+def get_days(from_date: datetime, to_date: datetime):
     days = []
     if from_date and to_date:
         cur_day = from_date
@@ -153,6 +155,6 @@ def get_days(from_date, to_date):
     return days
 
 
-def split_n_times(items, n):
+def split_n_times(items: List[Any], n: int):
     n = min(len(items), n)
     return [items[i*len(items)//n:(i+1)*len(items)//n] for i in range(0, n)]
