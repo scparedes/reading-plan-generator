@@ -1,3 +1,6 @@
+"""Creates a n-day reading plan for a book.
+"""
+# pylint: disable=C0103
 import argparse
 from datetime import datetime
 
@@ -29,7 +32,7 @@ if __name__ == '__main__':
                                         end_date=end_date,
                                         startpage=options.start_page,
                                         endpage=options.end_page,
-                                        frequency=options.frequency,
+                                        num_times_to_read=options.frequency,
                                         name=options.book_name)
 
     plan_writer = BookReadingPlanWriter(book_reading_plan)

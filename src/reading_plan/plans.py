@@ -1,3 +1,5 @@
+"""Defines various reading plans.
+"""
 from datetime import datetime, timedelta
 from typing import Any, List
 
@@ -10,6 +12,14 @@ YEAR_LIMIT = 3
 
 class ReadingPlan:
     """A minimalist reading plan.
+
+    Args:
+        start_date: The beginning of the reading plan.
+        end_date: The end of the reading plan.
+        startpage: The first page of the reading plan.
+        endpage: The last page of the reading plan.
+        num_times_to_read: The number of times to read during the reading plan.
+        name: The name of the reading plan.
     """
 
     def __init__(self,
@@ -17,24 +27,24 @@ class ReadingPlan:
                  end_date: datetime = None,
                  startpage: int = None,
                  endpage: int = None,
-                 frequency: int = 5,
+                 num_times_to_read: int = 5,
                  name: str = None):
         self.start_date = start_date
         self.end_date = end_date
         self.startpage = startpage
         self.endpage = endpage
-        self.frequency = frequency
+        self.num_times_to_read = num_times_to_read
         self.name = name
+        self.days = []
 
     @property
-    def pages(self):
-        return [i for i in range(self.startpage, self.endpage+1)]
-
-    def get_page_placeholders(self):
-        return [None for i in range(0, self.endpage-self.startpage+1)]
+    def pages(self) -> List[int]:
+        """The list of page numbers to read."""
+        return range(self.startpage, self.endpage+1)
 
     @property
-    def formatted_date_range(self):
+    def formatted_date_range(self) -> str:
+        """The start date and end date as a human-readable string."""
         fdr = '%s %d' % (self.start_date.strftime('%b'), self.start_date.day)
         if self.start_date != self.end_date:
             fdr += ' - '
@@ -44,24 +54,16 @@ class ReadingPlan:
         return fdr
 
 
-class WeekLongReadingPlan(ReadingPlan):
-    """A reading plan based off of 1 week of reading.
-    """
-
-    def __init__(self,
-                 start_date: datetime = None,
-                 end_date: datetime = None,
-                 startpage: int = None,
-                 endpage: int = None,
-                 frequency: int = 5,
-                 name: str = None):
-        super(WeekLongReadingPlan, self).__init__(
-            start_date, end_date, startpage, endpage, frequency, name)
-        self.days = []
-
-
 class BookReadingPlan(ReadingPlan):
     """A reading plan based off multiple weeks of reading.
+
+    Args:
+        start_date: The beginning of the reading plan.
+        end_date: The end of the reading plan.
+        startpage: The first page of the reading plan.
+        endpage: The last page of the reading plan.
+        num_times_to_read: The number of times to read during the reading plan.
+        name: The name of the reading plan.
     """
 
     def __init__(self,
@@ -69,10 +71,10 @@ class BookReadingPlan(ReadingPlan):
                  end_date: datetime = None,
                  startpage: int = None,
                  endpage: int = None,
-                 frequency: int = 5,
+                 num_times_to_read: int = 5,
                  name: str = None):
         super(BookReadingPlan, self).__init__(
-            start_date, end_date, startpage, endpage, frequency, name)
+            start_date, end_date, startpage, endpage, num_times_to_read, name)
         if start_date > end_date:
             raise ValueError('Start Date must be smaller than End Date!')
         if (end_date - start_date).days > 365 * YEAR_LIMIT:
@@ -82,13 +84,14 @@ class BookReadingPlan(ReadingPlan):
         self.populate_weeks()
 
     def populate_weeks(self):
+        """Generates a multi-week reading plan and stores it in self.weeks."""
         pages = self.pages
         dates = self.get_dates_in_plan()
-        split_pages = split_n_times(pages, len(dates))
+        split_pages = _split_n_times(pages, len(dates))
         days = []
         for d, pages in zip(dates, split_pages):
             if d.weekday() == START_OF_WEEK and d != self.start_date:
-                if self.frequency != 1 or days:
+                if self.num_times_to_read != 1 or days:
                     week_long_plan = self.create_week_long_plan(days)
                     self.weeks.append(week_long_plan)
                     days = []
@@ -104,7 +107,15 @@ class BookReadingPlan(ReadingPlan):
             week_long_plan = self.create_week_long_plan(days)
             self.weeks.append(week_long_plan)
 
-    def create_week_long_plan(self, days: List[datetime]):
+    def create_week_long_plan(self, days: List[datetime]) -> ReadingPlan:
+        """Generates a single-week reading plan.
+
+        Args:
+            days: The days of a reading plan.
+
+        Returns:
+            A single-week reading plan.
+        """
         if days[-1].end_date == self.end_date:
             end_date = self.end_date
         else:
@@ -113,31 +124,41 @@ class BookReadingPlan(ReadingPlan):
                    cur_date == days[0].start_date):
                 cur_date += timedelta(days=1)
             end_date = cur_date - timedelta(days=1)
-        week_long_plan = WeekLongReadingPlan(start_date=days[0].start_date,
-                                             end_date=end_date,
-                                             startpage=days[0].startpage,
-                                             endpage=days[-1].endpage,
-                                             frequency=self.frequency)
+        week_long_plan = ReadingPlan(start_date=days[0].start_date,
+                                     end_date=end_date,
+                                     startpage=days[0].startpage,
+                                     endpage=days[-1].endpage,
+                                     num_times_to_read=self.num_times_to_read)
         week_long_plan.days = days
         return week_long_plan
 
-    def get_dates_in_plan(self):
-        all_dates = get_days(self.start_date, self.end_date)
+    def get_dates_in_plan(self) -> List[datetime]:
+        """Gets the days in a reading plan.
+
+        Returns:
+            The days in a reading plan.
+        """
+        all_dates = _get_days(self.start_date, self.end_date)
         dates = self.adjust_dates_for_reading_frequency(all_dates)
         return dates
 
     def adjust_dates_for_reading_frequency(self, all_dates: List[datetime]):
+        """Remaps consecutive days to days that satisfy the reading frequency.
+
+        Returns:
+            The days that satisfy the reading frequency per week.
+        """
         dates = []
         cur_date = all_dates[0]
         dates_per_week = 0
-        if self.frequency == 1:
+        if self.num_times_to_read == 1:
             dates.append(cur_date)
-        while not (cur_date > self.end_date):
+        while not cur_date > self.end_date:
             dates_per_week += 1
             if (cur_date.weekday() == START_OF_WEEK and
-                cur_date != self.start_date):
+                    cur_date != self.start_date):
                 dates_per_week = 0
-            if dates_per_week >= self.frequency:
+            if dates_per_week >= self.num_times_to_read:
                 cur_date += timedelta(days=1)
                 continue
             dates.append(cur_date)
@@ -145,7 +166,7 @@ class BookReadingPlan(ReadingPlan):
         return dates
 
 
-def get_days(from_date: datetime, to_date: datetime):
+def _get_days(from_date: datetime, to_date: datetime) -> List[datetime]:
     days = []
     if from_date and to_date:
         cur_day = from_date
@@ -155,6 +176,6 @@ def get_days(from_date: datetime, to_date: datetime):
     return days
 
 
-def split_n_times(items: List[Any], n: int):
+def _split_n_times(items: List[Any], n: int) -> List[List[Any]]:
     n = min(len(items), n)
     return [items[i*len(items)//n:(i+1)*len(items)//n] for i in range(0, n)]

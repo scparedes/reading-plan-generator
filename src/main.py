@@ -45,7 +45,7 @@ def generate_reading_plan():
                                             end_date=end_date,
                                             startpage=start_page,
                                             endpage=end_page,
-                                            frequency=frequency,
+                                            num_times_to_read=frequency,
                                             name=book_name)
         output_file_type = request.form['output_file_type'].lower()
         format_outfile = 'format_outfile' in request.form
