@@ -30,8 +30,8 @@ if __name__ == '__main__':
     end_date = datetime.strptime(options.end_date, '%Y%m%d')
     book_reading_plan = BookReadingPlan(start_date=start_date,
                                         end_date=end_date,
-                                        startpage=options.start_page,
-                                        endpage=options.end_page,
+                                        start_page=options.start_page,
+                                        end_page=options.end_page,
                                         num_times_to_read=options.frequency,
                                         name=options.book_name)
 

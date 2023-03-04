@@ -16,8 +16,8 @@ class ReadingPlan:
     Args:
         start_date: The beginning of the reading plan.
         end_date: The end of the reading plan.
-        startpage: The first page of the reading plan.
-        endpage: The last page of the reading plan.
+        start_page: The first page of the reading plan.
+        end_page: The last page of the reading plan.
         num_times_to_read: The number of times to read during the reading plan.
         name: The name of the reading plan.
     """
@@ -25,14 +25,14 @@ class ReadingPlan:
     def __init__(self,
                  start_date: datetime = None,
                  end_date: datetime = None,
-                 startpage: int = None,
-                 endpage: int = None,
+                 start_page: int = None,
+                 end_page: int = None,
                  num_times_to_read: int = 5,
                  name: str = None):
         self.start_date = start_date
         self.end_date = end_date
-        self.startpage = startpage
-        self.endpage = endpage
+        self.start_page = start_page
+        self.end_page = end_page
         self.num_times_to_read = num_times_to_read
         self.name = name
         self.days = []
@@ -40,7 +40,7 @@ class ReadingPlan:
     @property
     def pages(self) -> List[int]:
         """The list of page numbers to read."""
-        return range(self.startpage, self.endpage+1)
+        return range(self.start_page, self.end_page+1)
 
     @property
     def formatted_date_range(self) -> str:
@@ -60,8 +60,8 @@ class BookReadingPlan(ReadingPlan):
     Args:
         start_date: The beginning of the reading plan.
         end_date: The end of the reading plan.
-        startpage: The first page of the reading plan.
-        endpage: The last page of the reading plan.
+        start_page: The first page of the reading plan.
+        end_page: The last page of the reading plan.
         num_times_to_read: The number of times to read during the reading plan.
         name: The name of the reading plan.
     """
@@ -69,12 +69,12 @@ class BookReadingPlan(ReadingPlan):
     def __init__(self,
                  start_date: datetime = None,
                  end_date: datetime = None,
-                 startpage: int = None,
-                 endpage: int = None,
+                 start_page: int = None,
+                 end_page: int = None,
                  num_times_to_read: int = 5,
                  name: str = None):
         super(BookReadingPlan, self).__init__(
-            start_date, end_date, startpage, endpage, num_times_to_read, name)
+            start_date, end_date, start_page, end_page, num_times_to_read, name)
         if start_date > end_date:
             raise ValueError('Start Date must be smaller than End Date!')
         if (end_date - start_date).days > 365 * YEAR_LIMIT:
@@ -95,13 +95,13 @@ class BookReadingPlan(ReadingPlan):
                     week_long_plan = self.create_week_long_plan(days)
                     self.weeks.append(week_long_plan)
                     days = []
-            startpage = endpage = pages.pop(0)
+            start_page = end_page = pages.pop(0)
             for page in pages[1:]:
-                endpage = page
+                end_page = page
             day = ReadingPlan(start_date=d,
                               end_date=d,
-                              startpage=startpage,
-                              endpage=endpage)
+                              start_page=start_page,
+                              end_page=end_page)
             days.append(day)
         if days:
             week_long_plan = self.create_week_long_plan(days)
@@ -126,8 +126,8 @@ class BookReadingPlan(ReadingPlan):
             end_date = cur_date - timedelta(days=1)
         week_long_plan = ReadingPlan(start_date=days[0].start_date,
                                      end_date=end_date,
-                                     startpage=days[0].startpage,
-                                     endpage=days[-1].endpage,
+                                     start_page=days[0].start_page,
+                                     end_page=days[-1].end_page,
                                      num_times_to_read=self.num_times_to_read)
         week_long_plan.days = days
         return week_long_plan

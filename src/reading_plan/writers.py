@@ -141,12 +141,12 @@ class ReadingPlanWriter():
         # TODO: Correctly calculate the first weekday `self.write_header('%s, week %d' % (month_name, week_of_month(week.start_date)))`
         self.write_header('Week %d' % self._weeks_seen)
         for day in week.days:
-            if not day.startpage:
+            if not day.start_page:
                 continue
-            if day.startpage == day.endpage:
-                self.write_data('o  ' + '%d' % (day.startpage))
+            if day.start_page == day.end_page:
+                self.write_data('o  ' + '%d' % (day.start_page))
             else:
-                self.write_data('o  ' + '%d-%d' % (day.startpage, day.endpage))
+                self.write_data('o  ' + '%d-%d' % (day.start_page, day.end_page))
 
     def select_column_and_page(self, num_additional_rows: int):
         """Updater the writer head to point to a column on a page.
