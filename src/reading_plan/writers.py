@@ -8,7 +8,7 @@ import uuid
 
 import xlsxwriter
 
-from plans import BookReadingPlan, ReadingPlan
+from .plans import BookReadingPlan, ReadingPlan
 
 
 MONTHS = calendar.month_name
@@ -182,7 +182,7 @@ class ReadingPlanWriter():
         """Writes a summary of each week of reading.
 
         Args:
-            weeks: A list of multiple week's worth of reading.
+            weeks: A list of reading plans.
         """
         if self.format_outfile:
             while not self.has_reached_row_limit:
@@ -198,32 +198,9 @@ class ReadingPlanWriter():
                 continue
             if self.format_outfile:
                 self.select_column_and_page(1)
-            weekly_summary_row = ('___ %s' % self._num_to_word(week_number)
+            weekly_summary_row = ('___ %s' % num_to_word(week_number)
                                   ).ljust(20, '.') + week.formatted_date_range
             self.write_data(weekly_summary_row)
-
-    def _num_to_word(self, num: int) -> str:
-        """Converts a number to a word.
-
-        The number must be between 0 and 99.
-
-        Args:
-            num: A number to convert to a word.
-
-        Returns:
-            A word representation of a number.
-        """
-        if 0 <= num <= 19:
-            return BASE_NUMBERS[num]
-        elif 20 <= num <= 99:
-            tens, below_ten = divmod(num, 10)
-            return (TENS_NUMBERS[tens - 2] + '-' +
-                    BASE_NUMBERS[below_ten]
-                    if below_ten
-                    else TENS_NUMBERS[tens - 2])
-        else:
-            raise NotImplementedError(
-                'Number out of implemented range of numbers.')
 
     @property
     def has_reached_row_limit(self) -> bool:
@@ -354,10 +331,33 @@ class CsvWeekLongWriter(ReadingPlanWriter):
         self.readingplan.close()
 
 
-BASE_NUMBERS = {0: 'Zero', 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five',
+def num_to_word(num: int) -> str:
+    """Converts a number to a word.
+
+    The number must be between 1 and 999.
+
+    Args:
+        num: A number to convert to a word.
+
+    Returns:
+        A word representation of a number.
+    """
+    if num > 999 or num < 0:
+        raise NotImplementedError(
+            'Number out of implemented range of numbers.')
+    if num > 99:
+        hundreds, tens_and_ones = divmod(num, 100)
+        return BASE_NUMBERS[hundreds] + ' Hundred ' + num_to_word(tens_and_ones)
+    if num > 19:
+        tens, ones = divmod(num, 10)
+        return TENS_NUMBERS[tens] + ('-' + BASE_NUMBERS[ones] if ones else '')
+    return BASE_NUMBERS[num]
+
+
+BASE_NUMBERS = {0: '', 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five',
                 6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten',
                 11: 'Eleven', 12: 'Twelve', 13: 'Thirteen', 14: 'Fourteen',
                 15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen', 18: 'Eighteen',
                 19: 'Nineteen'}
-TENS_NUMBERS = ['Twenty', 'Thirty', 'Forty', 'Fifty',
+TENS_NUMBERS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty',
                 'Sixty', 'Seventy', 'Eighty', 'Ninety']

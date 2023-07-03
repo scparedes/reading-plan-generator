@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 from typing import Any, List
 
 
-from common import START_OF_WEEK
+from .common import START_OF_WEEK
 
 
-YEAR_LIMIT = 3
+YEAR_LIMIT = 19  # writers.num_to_word() only calculates up to 999 weeks.
 
 
 class ReadingPlan:
@@ -95,7 +95,7 @@ class BookReadingPlan(ReadingPlan):
                     week_long_plan = self.create_week_long_plan(days)
                     self.weeks.append(week_long_plan)
                     days = []
-            start_page = end_page = pages.pop(0)
+            start_page = end_page = list(pages).pop(0)
             for page in pages[1:]:
                 end_page = page
             day = ReadingPlan(start_date=d,

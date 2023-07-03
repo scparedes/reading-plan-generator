@@ -5,8 +5,8 @@ import argparse
 from datetime import datetime
 
 
-from plans import BookReadingPlan
-from writers import BookReadingPlanWriter
+from .plans import BookReadingPlan
+from .writers import BookReadingPlanWriter
 
 
 if __name__ == '__main__':
