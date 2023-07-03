@@ -198,6 +198,7 @@ class ReadingPlanWriter():
                 continue
             if self.format_outfile:
                 self.select_column_and_page(1)
+            # TODO(#3): Format responsively for weeks higher than 100.
             weekly_summary_row = ('___ %s' % num_to_word(week_number)
                                   ).ljust(20, '.') + week.formatted_date_range
             self.write_data(weekly_summary_row)
